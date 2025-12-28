@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BookMyArena</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">BookMyArena</h1>
+            <div class="nav-links">
+                <span id="userName"></span>
+                <a href="search.html">Search Arenas</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div id="ownerDashboard" style="display: none;">
+            <h2>Owner Dashboard</h2>
+            
+            <section class="section">
+                <h3>My Stadiums</h3>
+                <button class="btn btn-primary" onclick="showAddStadiumModal()">Add Stadium</button>
+                <div id="stadiumsList" class="cards-grid"></div>
+            </section>
+
+            <section class="section">
+                <h3>My Bookings</h3>
+                <div id="ownerBookings" class="table-container"></div>
+            </section>
+        </div>
+
+        <div id="userDashboard" style="display: none;">
+            <h2>My Bookings</h2>
+            <div id="userBookings" class="table-container"></div>
+        </div>
+    </main>
+
+    <!-- Add Stadium Modal -->
+    <div id="addStadiumModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddStadiumModal()">&times;</span>
+            <h3>Add Stadium</h3>
+            <form id="addStadiumForm">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="stadiumName" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="stadiumLocation" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Stadium</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Arena Modal -->
+    <div id="addArenaModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddArenaModal()">&times;</span>
+            <h3>Add Arena</h3>
+            <form id="addArenaForm">
+                <input type="hidden" id="arenaStadiumId">
+                <div class="form-group">
+                    <label>Arena Name</label>
+                    <input type="text" id="arenaName" required>
+                </div>
+                <div class="form-group">
+                    <label>Sport Type</label>
+                    <input type="text" id="arenaSportType" required>
+                </div>
+                <div class="form-group">
+                    <label>Capacity</label>
+                    <input type="number" id="arenaCapacity" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Slot Duration (minutes)</label>
+                    <input type="number" id="arenaSlotDuration" required min="30" step="30">
+                </div>
+                <div class="form-group">
+                    <label>Price per Slot</label>
+                    <input type="number" id="arenaPrice" required min="0" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Arena</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+</html>
+

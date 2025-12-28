@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Arenas - BookMyArena</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">BookMyArena</h1>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Search Arenas</h2>
+        
+        <div class="search-filters">
+            <div class="form-group">
+                <label for="locationFilter">Location</label>
+                <input type="text" id="locationFilter" placeholder="City or area">
+            </div>
+            
+            <div class="form-group">
+                <label for="sportFilter">Sport Type</label>
+                <input type="text" id="sportFilter" placeholder="Tennis, Basketball, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label for="dateFilter">Date</label>
+                <input type="date" id="dateFilter">
+            </div>
+            
+            <button class="btn btn-primary" onclick="searchArenas()">Search</button>
+        </div>
+
+        <div id="searchResults" class="cards-grid"></div>
+    </main>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBookingModal()">&times;</span>
+            <h3>Book Arena</h3>
+            <div id="arenaDetails"></div>
+            <form id="bookingForm">
+                <input type="hidden" id="bookingArenaId">
+                <div class="form-group">
+                    <label>Select Date</label>
+                    <input type="date" id="bookingDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="datetime-local" id="bookingStart" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="datetime-local" id="bookingEnd" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Book Now</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/booking.js"></script>
+</body>
+</html>
+
