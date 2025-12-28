@@ -18,17 +18,18 @@
     </nav>
 
     <main class="container">
-        <h2>Search Arenas</h2>
+        <h2>Available Arenas</h2>
+        <p>Browse all available arenas from all owners. Use filters to narrow down your search.</p>
         
         <div class="search-filters">
             <div class="form-group">
                 <label for="locationFilter">Location</label>
-                <input type="text" id="locationFilter" placeholder="City or area">
+                <input type="text" id="locationFilter" placeholder="City or area" onkeyup="if(event.key==='Enter') searchArenas()">
             </div>
             
             <div class="form-group">
                 <label for="sportFilter">Sport Type</label>
-                <input type="text" id="sportFilter" placeholder="Tennis, Basketball, etc.">
+                <input type="text" id="sportFilter" placeholder="Tennis, Basketball, etc." onkeyup="if(event.key==='Enter') searchArenas()">
             </div>
             
             <div class="form-group">
@@ -37,6 +38,7 @@
             </div>
             
             <button class="btn btn-primary" onclick="searchArenas()">Search</button>
+            <button class="btn btn-secondary" onclick="loadAllArenas()">Show All</button>
         </div>
 
         <div id="searchResults" class="cards-grid"></div>

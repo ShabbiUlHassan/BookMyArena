@@ -93,6 +93,38 @@ func GetAllArenas() ([]models.Arena, error) {
 	return arenas, nil
 }
 
+func GetAllArenasWithLocation() ([]models.ArenaWithLocation, error) {
+	query := `
+		SELECT a.ArenaId, a.StadiumId, a.Name, a.SportType, a.Capacity, a.SlotDuration, a.Price, a.CreatedAt,
+		       s.Name AS StadiumName, s.Location
+		FROM Arenas a
+		INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+		ORDER BY a.CreatedAt DESC
+	`
+
+	rows, err := config.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var arenas []models.ArenaWithLocation
+	for rows.Next() {
+		var arena models.ArenaWithLocation
+		err := rows.Scan(
+			&arena.ArenaID, &arena.StadiumID, &arena.Name, &arena.SportType,
+			&arena.Capacity, &arena.SlotDuration, &arena.Price, &arena.CreatedAt,
+			&arena.StadiumName, &arena.Location,
+		)
+		if err != nil {
+			return nil, err
+		}
+		arenas = append(arenas, arena)
+	}
+
+	return arenas, nil
+}
+
 func GetArenasByFilters(location, sportType string, date *time.Time) ([]models.Arena, error) {
 	query := `
 		SELECT a.ArenaId, a.StadiumId, a.Name, a.SportType, a.Capacity, a.SlotDuration, a.Price, a.CreatedAt
@@ -122,6 +154,40 @@ func GetArenasByFilters(location, sportType string, date *time.Time) ([]models.A
 	return arenas, nil
 }
 
+func GetArenasByFiltersWithLocation(location, sportType string, date *time.Time) ([]models.ArenaWithLocation, error) {
+	query := `
+		SELECT a.ArenaId, a.StadiumId, a.Name, a.SportType, a.Capacity, a.SlotDuration, a.Price, a.CreatedAt,
+		       s.Name AS StadiumName, s.Location
+		FROM Arenas a
+		INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+		WHERE (@p1 = '' OR s.Location LIKE '%' + @p1 + '%')
+		  AND (@p2 = '' OR a.SportType = @p2)
+		ORDER BY a.CreatedAt DESC
+	`
+
+	rows, err := config.DB.Query(query, location, sportType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var arenas []models.ArenaWithLocation
+	for rows.Next() {
+		var arena models.ArenaWithLocation
+		err := rows.Scan(
+			&arena.ArenaID, &arena.StadiumID, &arena.Name, &arena.SportType,
+			&arena.Capacity, &arena.SlotDuration, &arena.Price, &arena.CreatedAt,
+			&arena.StadiumName, &arena.Location,
+		)
+		if err != nil {
+			return nil, err
+		}
+		arenas = append(arenas, arena)
+	}
+
+	return arenas, nil
+}
+
 func CheckSlotAvailability(arenaID int, slotStart, slotEnd time.Time) (bool, error) {
 	var count int
 	err := config.DB.QueryRow(
@@ -138,4 +204,3 @@ func CheckSlotAvailability(arenaID int, slotStart, slotEnd time.Time) (bool, err
 
 	return count == 0, nil
 }
-

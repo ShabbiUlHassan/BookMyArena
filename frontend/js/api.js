@@ -98,6 +98,12 @@ const API = {
         });
     },
 
+    async getAllArenas() {
+        return this.request('/api/arenas', {
+            method: 'GET',
+        });
+    },
+
     async getArena(id, date) {
         const params = date ? `?date=${date}` : '';
         return this.request(`/api/arenas/${id}${params}`, {

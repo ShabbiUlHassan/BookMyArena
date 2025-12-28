@@ -54,17 +54,27 @@ func GetBookings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var bookings interface{}
-	var err error
 
 	if user.Role == "Owner" {
-		bookings, err = services.GetOwnerBookings(user.UserID)
+		ownerBookings, err := services.GetOwnerBookings(user.UserID)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if ownerBookings == nil {
+			ownerBookings = []models.BookingWithDetails{}
+		}
+		bookings = ownerBookings
 	} else {
-		bookings, err = services.GetBookingsByUser(user.UserID)
-	}
-
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+		userBookings, err := services.GetBookingsByUser(user.UserID)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if userBookings == nil {
+			userBookings = []models.BookingWithDetails{}
+		}
+		bookings = userBookings
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -136,4 +146,3 @@ func UpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "booking status updated successfully"})
 }
-

@@ -81,7 +81,7 @@ func GetArena(w http.ResponseWriter, r *http.Request) {
 			bookings, _ := services.GetBookingsByArena(arenaID)
 			slotAvailability := generateSlotAvailability(arena, date, bookings)
 			response := map[string]interface{}{
-				"arena":           arena,
+				"arena":            arena,
 				"slotAvailability": slotAvailability,
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -135,7 +135,8 @@ func SearchArenas(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	arenas, err := services.GetArenasByFilters(location, sportType, date)
+	// Use the version that includes location information
+	arenas, err := services.GetArenasByFiltersWithLocation(location, sportType, date)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -145,21 +146,41 @@ func SearchArenas(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(arenas)
 }
 
+func GetAllArenas(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	arenas, err := services.GetAllArenasWithLocation()
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Return empty array if no arenas found, not error
+	w.Header().Set("Content-Type", "application/json")
+	if arenas == nil {
+		arenas = []models.ArenaWithLocation{}
+	}
+	json.NewEncoder(w).Encode(arenas)
+}
+
 func generateSlotAvailability(arena *models.Arena, date time.Time, bookings []models.Booking) []models.SlotAvailability {
 	// Generate slots for the day (e.g., 8 AM to 10 PM, based on slot duration)
 	startHour := 8
 	endHour := 22
 	slotDuration := time.Duration(arena.SlotDuration) * time.Minute
-	
+
 	var slots []models.SlotAvailability
-	
+
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), startHour, 0, 0, 0, time.UTC)
 	dayEnd := time.Date(date.Year(), date.Month(), date.Day(), endHour, 0, 0, 0, time.UTC)
-	
+
 	currentSlot := dayStart
 	for currentSlot.Add(slotDuration).Before(dayEnd) || currentSlot.Add(slotDuration).Equal(dayEnd) {
 		slotEnd := currentSlot.Add(slotDuration)
-		
+
 		// Check if this slot conflicts with any booking
 		available := true
 		for _, booking := range bookings {
@@ -172,16 +193,15 @@ func generateSlotAvailability(arena *models.Arena, date time.Time, bookings []mo
 				break
 			}
 		}
-		
+
 		slots = append(slots, models.SlotAvailability{
 			SlotStart: currentSlot,
 			SlotEnd:   slotEnd,
 			Available: available,
 		})
-		
+
 		currentSlot = slotEnd
 	}
-	
+
 	return slots
 }
-

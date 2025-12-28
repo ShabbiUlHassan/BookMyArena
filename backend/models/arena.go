@@ -15,6 +15,12 @@ type Arena struct {
 	CreatedAt    time.Time `json:"createdAt" db:"CreatedAt"`
 }
 
+type ArenaWithLocation struct {
+	Arena
+	StadiumName string `json:"stadiumName" db:"StadiumName"`
+	Location    string `json:"location" db:"Location"`
+}
+
 type CreateArenaRequest struct {
 	StadiumID    int     `json:"stadiumId"`
 	Name         string  `json:"name"`
@@ -29,4 +35,3 @@ type SlotAvailability struct {
 	SlotEnd   time.Time `json:"slotEnd"`
 	Available bool      `json:"available"`
 }
-

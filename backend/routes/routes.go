@@ -44,6 +44,7 @@ func SetupRoutes() *mux.Router {
 
 	// Arena routes
 	api.HandleFunc("/arenas", controllers.CreateArena).Methods("POST", "OPTIONS")
+	api.HandleFunc("/arenas", controllers.GetAllArenas).Methods("GET", "OPTIONS")
 	api.HandleFunc("/arenas/search", controllers.SearchArenas).Methods("GET", "OPTIONS")
 	api.HandleFunc("/arenas/{id}", controllers.GetArena).Methods("GET", "OPTIONS")
 	api.HandleFunc("/stadiums/{stadiumId}/arenas", controllers.GetArenasByStadium).Methods("GET", "OPTIONS")
