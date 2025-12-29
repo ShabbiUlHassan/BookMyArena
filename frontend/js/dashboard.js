@@ -197,7 +197,7 @@ function displayStadiums(stadiums) {
             </div>
             <div class="arena-table-container" id="arena-container-${stadium.stadiumId}">
                 <div class="arena-table-header">
-                    <div class="arena-search">
+                    <div class="arena-search" id="arena-search-container-${stadium.stadiumId}" style="display: none;">
                         <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search all columns..." 
                                onkeyup="handleArenaSearch(${stadium.stadiumId}, event)"
                                oninput="handleArenaSearchInput(${stadium.stadiumId}, event)">
@@ -271,12 +271,19 @@ function displayArenasTable(stadiumId, result) {
 
     console.log(`Displaying arenas table for stadium ${stadiumId}:`, result);
 
-    // If no arenas, don't render the table
+    // Show/hide arena search based on whether there are arenas
+    const arenaSearchContainer = document.getElementById(`arena-search-container-${stadiumId}`);
+    
+    // If no arenas, don't render the table and hide the search input
     if (!result || !result.arenas || result.arenas.length === 0) {
         tableContainer.innerHTML = '';
         if (paginationContainer) paginationContainer.innerHTML = '';
+        if (arenaSearchContainer) arenaSearchContainer.style.display = 'none';
         return;
     }
+    
+    // Show the arena search if there are arenas
+    if (arenaSearchContainer) arenaSearchContainer.style.display = 'block';
 
     const state = stadiumArenaState[stadiumId];
     const sortColumn = state ? state.sortColumn : 'CreatedAt';
@@ -439,18 +446,30 @@ function closeAddStadiumModal() {
 
 function showAddArenaModal(stadiumId) {
     document.getElementById('arenaStadiumId').value = stadiumId;
-    document.getElementById('addArenaModal').style.display = 'block';
+    
+    const modalElement = document.getElementById('addArenaModal');
+    const modal = new bootstrap.Modal(modalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+    modal.show();
 }
 
 function closeAddArenaModal() {
-    document.getElementById('addArenaModal').style.display = 'none';
+    const modalElement = document.getElementById('addArenaModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
+    }
+    
     const form = document.getElementById('addArenaForm');
     form.reset();
     delete form.dataset.arenaId;
     delete form.dataset.isEdit;
     
     // Reset modal title and button text
-    const modalTitle = document.querySelector('#addArenaModal h3');
+    const modalTitle = document.querySelector('#addArenaModal .modal-title');
     const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
     if (modalTitle) modalTitle.textContent = 'Add Arena';
     if (submitButton) submitButton.textContent = 'Add Arena';
@@ -820,7 +839,13 @@ async function editArena(arenaId, stadiumId) {
         if (submitButton) submitButton.textContent = 'Update Arena';
         
         // Show the modal
-        document.getElementById('addArenaModal').style.display = 'block';
+        const modalElement = document.getElementById('addArenaModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        modal.show();
     } catch (error) {
         alert('Error loading arena: ' + error.message);
     }
@@ -1054,15 +1079,13 @@ window.showAvailabilityModal = showAvailabilityModal;
 window.addAvailabilitySlot = addAvailabilitySlot;
 window.removeAvailabilitySlot = removeAvailabilitySlot;
 
-// Close modals when clicking outside
+// Close modals when clicking outside (only for non-Bootstrap modals)
+// Bootstrap modals handle this automatically
 window.onclick = function(event) {
     const stadiumModal = document.getElementById('addStadiumModal');
-    const arenaModal = document.getElementById('addArenaModal');
+    // Note: arenaModal is now a Bootstrap modal, so it handles clicks automatically
     if (event.target == stadiumModal) {
         closeAddStadiumModal();
-    }
-    if (event.target == arenaModal) {
-        closeAddArenaModal();
     }
 }
 
