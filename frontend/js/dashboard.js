@@ -91,11 +91,67 @@ function displayStadiums(stadiums) {
 async function loadArenas(stadiumId) {
     try {
         const arenas = await API.getArenasByStadium(stadiumId);
-        alert(`Arenas in this stadium: ${arenas.length}\n\n${arenas.map(a => `- ${a.name} (${a.sportType}) - $${a.price}`).join('\n')}`);
+        displayArenasInModal(arenas);
     } catch (error) {
         alert('Error: ' + error.message);
     }
 }
+
+function displayArenasInModal(arenas) {
+    const container = document.getElementById('arenasList');
+    if (!container) {
+        console.error('arenasList container not found!');
+        return;
+    }
+
+    if (!arenas || !Array.isArray(arenas) || arenas.length === 0) {
+        container.innerHTML = '<p>No arenas found in this stadium.</p>';
+        document.getElementById('viewArenasModal').style.display = 'block';
+        return;
+    }
+
+    const table = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Arena Name</th>
+                    <th>Sport Type</th>
+                    <th>Capacity</th>
+                    <th>Slot Duration</th>
+                    <th>Price per Slot</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${arenas.map(arena => {
+                    const arenaName = arena.name || 'Unnamed Arena';
+                    const sportType = arena.sportType || 'N/A';
+                    const capacity = arena.capacity || 0;
+                    const slotDuration = arena.slotDuration || 0;
+                    const price = arena.price ? arena.price.toFixed(2) : '0.00';
+                    
+                    return `
+                    <tr>
+                        <td>${arenaName}</td>
+                        <td>${sportType}</td>
+                        <td>${capacity} players</td>
+                        <td>${slotDuration} minutes</td>
+                        <td>$${price}</td>
+                    </tr>
+                `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = table;
+    document.getElementById('viewArenasModal').style.display = 'block';
+}
+
+function closeViewArenasModal() {
+    document.getElementById('viewArenasModal').style.display = 'none';
+}
+
+// Make loadArenas globally accessible
+window.loadArenas = loadArenas;
 
 function showAddStadiumModal() {
     document.getElementById('addStadiumModal').style.display = 'block';
@@ -367,15 +423,26 @@ function displayAvailableArenas(arenas) {
     container.innerHTML = table;
 }
 
+// Make modal functions globally accessible
+window.showAddStadiumModal = showAddStadiumModal;
+window.closeAddStadiumModal = closeAddStadiumModal;
+window.showAddArenaModal = showAddArenaModal;
+window.closeAddArenaModal = closeAddArenaModal;
+window.closeViewArenasModal = closeViewArenasModal;
+
 // Close modals when clicking outside
 window.onclick = function(event) {
     const stadiumModal = document.getElementById('addStadiumModal');
     const arenaModal = document.getElementById('addArenaModal');
+    const viewArenasModal = document.getElementById('viewArenasModal');
     if (event.target == stadiumModal) {
         closeAddStadiumModal();
     }
     if (event.target == arenaModal) {
         closeAddArenaModal();
+    }
+    if (event.target == viewArenasModal) {
+        closeViewArenasModal();
     }
 }
 
