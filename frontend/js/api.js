@@ -189,5 +189,25 @@ const API = {
             body: JSON.stringify({ status }),
         });
     },
+
+    // Availability endpoints
+    async createArenaAvailability(arenaId, availabilityData) {
+        return this.request(`/api/arenas/${arenaId}/availability`, {
+            method: 'POST',
+            body: JSON.stringify(availabilityData),
+        });
+    },
+
+    async getArenaAvailabilities(arenaId) {
+        return this.request(`/api/arenas/${arenaId}/availability`, {
+            method: 'GET',
+        });
+    },
+
+    async deleteArenaAvailability(availabilityId) {
+        return this.request(`/api/availability/${availabilityId}`, {
+            method: 'DELETE',
+        });
+    },
 };
 

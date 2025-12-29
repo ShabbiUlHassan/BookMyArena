@@ -69,6 +69,92 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('Error: ' + error.message);
         }
     });
+
+    // Availability form submission
+    const availabilityForm = document.getElementById('availabilityForm');
+    if (availabilityForm) {
+        availabilityForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const arenaId = parseInt(document.getElementById('availabilityArenaId').value);
+            const slots = document.querySelectorAll('.availability-slot');
+            
+            if (slots.length === 0) {
+                alert('Please add at least one availability slot');
+                return;
+            }
+            
+            const availabilities = [];
+            let hasError = false;
+            
+            slots.forEach((slot, index) => {
+                const date = slot.querySelector('.availability-date').value;
+                const startTime = slot.querySelector('.availability-start-time').value;
+                const endTime = slot.querySelector('.availability-end-time').value;
+                
+                if (!date || !startTime || !endTime) {
+                    alert(`Date Entry ${index + 1} is incomplete`);
+                    hasError = true;
+                    return;
+                }
+                
+                // Validate start time is before end time
+                if (startTime >= endTime) {
+                    alert(`Date Entry ${index + 1}: Start time must be earlier than end time`);
+                    hasError = true;
+                    return;
+                }
+                
+                availabilities.push({
+                    date: date,
+                    startTime: startTime,
+                    endTime: endTime
+                });
+            });
+            
+            if (hasError) {
+                return;
+            }
+            
+            try {
+                await API.createArenaAvailability(arenaId, {
+                    arenaId: arenaId,
+                    availabilities: availabilities
+                });
+                
+                alert('Availability created successfully!');
+                
+                // Close modal
+                const modalElement = document.getElementById('availabilityModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Reset form after modal is hidden
+                setTimeout(() => {
+                    availabilityForm.reset();
+                    document.getElementById('availabilitySlots').innerHTML = '';
+                    availabilitySlotCount = 0;
+                }, 300);
+            } catch (error) {
+                alert('Error creating availability: ' + error.message);
+            }
+        });
+    }
+
+    // Reset availability modal when it's hidden
+    const availabilityModalElement = document.getElementById('availabilityModal');
+    if (availabilityModalElement) {
+        availabilityModalElement.addEventListener('hidden.bs.modal', function () {
+            const form = document.getElementById('availabilityForm');
+            if (form) {
+                form.reset();
+                document.getElementById('availabilitySlots').innerHTML = '';
+                availabilitySlotCount = 0;
+            }
+        });
+    }
 });
 
 async function loadOwnerDashboard() {
@@ -226,10 +312,13 @@ function displayArenasTable(stadiumId, result) {
                         <td>${createdAt}</td>
                         <td>
                             <button class="btn-icon btn-edit" onclick="editArena(${arena.arenaId}, ${arena.stadiumId})" title="Edit Arena">
-                                ✏️
+                                <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn-icon btn-delete" onclick="deleteArena(${arena.arenaId}, ${stadiumId})" title="Delete Arena">
-                                🗑️
+                            <button class="btn-icon btn-availability" onclick="showAvailabilityModal(${arena.arenaId}, ${arena.stadiumId})" title="Set Availability">
+                                <i class="bi bi-clock"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="deleteArena(${arena.arenaId}, ${arena.stadiumId})" title="Delete Arena">
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
@@ -738,6 +827,107 @@ async function deleteArena(arenaId, stadiumId) {
     }
 }
 
+let availabilitySlotCount = 0;
+
+function showAvailabilityModal(arenaId, stadiumId) {
+    availabilitySlotCount = 0;
+    document.getElementById('availabilityArenaId').value = arenaId;
+    document.getElementById('availabilitySlots').innerHTML = '';
+    
+    // Add first slot
+    addAvailabilitySlot();
+    
+    const modalElement = document.getElementById('availabilityModal');
+    
+    // Dispose of any existing modal instance to avoid backdrop issues
+    const existingModal = bootstrap.Modal.getInstance(modalElement);
+    if (existingModal) {
+        existingModal.dispose();
+    }
+    
+    // Create new modal instance
+    const modal = new bootstrap.Modal(modalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+    
+    modal.show();
+}
+
+function addAvailabilitySlot() {
+    if (availabilitySlotCount >= 10) {
+        alert('Maximum 10 availability slots allowed');
+        return;
+    }
+    
+    availabilitySlotCount++;
+    const slotId = `slot-${availabilitySlotCount}`;
+    const slotsContainer = document.getElementById('availabilitySlots');
+    
+    const slotHtml = `
+        <div class="availability-slot mb-3 p-3 border rounded" id="${slotId}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Date Entry ${availabilitySlotCount}</h6>
+                ${availabilitySlotCount > 1 ? `<button type="button" class="btn btn-sm btn-danger" onclick="removeAvailabilitySlot('${slotId}')">
+                    <i class="bi bi-trash"></i> Remove
+                </button>` : ''}
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-control availability-date" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Start Time</label>
+                    <input type="time" class="form-control availability-start-time" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">End Time</label>
+                    <input type="time" class="form-control availability-end-time" required>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
+    
+    // Update add button visibility
+    const addBtn = document.getElementById('addDateBtn');
+    if (availabilitySlotCount >= 10) {
+        addBtn.style.display = 'none';
+    } else {
+        addBtn.style.display = 'block';
+    }
+}
+
+function removeAvailabilitySlot(slotId) {
+    const slot = document.getElementById(slotId);
+    if (slot) {
+        slot.remove();
+        availabilitySlotCount--;
+        
+        // Update add button visibility
+        const addBtn = document.getElementById('addDateBtn');
+        if (availabilitySlotCount < 10) {
+            addBtn.style.display = 'block';
+        }
+        
+        // Renumber slots
+        renumberAvailabilitySlots();
+    }
+}
+
+function renumberAvailabilitySlots() {
+    const slots = document.querySelectorAll('.availability-slot');
+    slots.forEach((slot, index) => {
+        const header = slot.querySelector('h6');
+        if (header) {
+            header.textContent = `Date Entry ${index + 1}`;
+        }
+    });
+}
+
 function showSection(section) {
     const userStr = sessionStorage.getItem('user');
     if (!userStr) return;
@@ -798,6 +988,9 @@ window.showAddArenaModal = showAddArenaModal;
 window.closeAddArenaModal = closeAddArenaModal;
 window.editArena = editArena;
 window.deleteArena = deleteArena;
+window.showAvailabilityModal = showAvailabilityModal;
+window.addAvailabilitySlot = addAvailabilitySlot;
+window.removeAvailabilitySlot = removeAvailabilitySlot;
 
 // Close modals when clicking outside
 window.onclick = function(event) {
