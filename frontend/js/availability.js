@@ -85,8 +85,12 @@ function displayAvailabilityTable(result) {
 
     // Generate sort icon
     const getSortIcon = (col) => {
-        if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
-        return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+        if (col !== sortColumn) {
+            return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+        }
+        return sortDirection === 'ASC' 
+            ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
+            : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
     };
 
     // Generate sort handler
@@ -96,7 +100,7 @@ function displayAvailabilityTable(result) {
     };
 
     const table = `
-        <table class="table table-striped table-hover data-table">
+        <table class="table data-table">
             <thead>
                 <tr>
                     <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
@@ -134,16 +138,16 @@ function displayAvailabilityTable(result) {
                         <td>${stadiumName}</td>
                         <td>${arenaName}</td>
                         <td>${bookerName}</td>
-                        <td>${reserved}</td>
+                        <td><span class="badge ${availability.reserved ? 'status-booked' : 'bg-secondary text-white'}">${reserved}</span></td>
                         <td>${createdDate}</td>
                         <td>
                             ${!isReserved ? `
-                                <button class="btn-icon btn-delete" onclick="deleteAvailability('${availabilityId}')" title="Delete Availability">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-sm btn-danger" onclick="deleteAvailability('${availabilityId}')" title="Delete Availability">
+                                    <i class="bi bi-trash me-1"></i>Delete
                                 </button>
                             ` : `
-                                <button class="btn-icon btn-delete" disabled title="Cannot delete reserved availability" style="opacity: 0.5; cursor: not-allowed;">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-sm btn-danger disabled" disabled title="Cannot delete reserved availability">
+                                    <i class="bi bi-trash me-1"></i>Delete
                                 </button>
                             `}
                         </td>

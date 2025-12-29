@@ -304,6 +304,10 @@ function displayArenasTable(stadiumId, result) {
 
     console.log(`Displaying arenas table for stadium ${stadiumId}:`, result);
 
+    // Get user role from session storage
+    const userStr = sessionStorage.getItem('user');
+    const ownerRole = userStr ? JSON.parse(userStr).role : '';
+
     // Show/hide arena search based on whether there are arenas
     const arenaSearchContainer = document.getElementById(`arena-search-container-${stadiumId}`);
     
@@ -323,10 +327,14 @@ function displayArenasTable(stadiumId, result) {
     const sortDirection = state ? state.sortDirection : 'DESC';
 
     // Generate sort icon
-    const getSortIcon = (col) => {
-        if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
-        return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
-    };
+        const getSortIcon = (col) => {
+            if (col !== sortColumn) {
+                return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+            }
+            return sortDirection === 'ASC' 
+                ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
+                : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
+        };
 
     // Generate sort handler
     const getSortHandler = (col) => {
@@ -335,7 +343,7 @@ function displayArenasTable(stadiumId, result) {
     };
 
     const table = `
-        <table class="data-table">
+        <table class="table data-table">
             <thead>
                 <tr>
                     <th class="sortable-header" onclick="${getSortHandler('Name')}">Arena Name ${getSortIcon('Name')}</th>
@@ -365,15 +373,13 @@ function displayArenasTable(stadiumId, result) {
                         <td>$${price}</td>
                         <td>${createdAt}</td>
                         <td>
-                            <button class="btn-icon btn-edit" onclick="editArena(${arena.arenaId}, ${arena.stadiumId})" title="Edit Arena">
-                                <i class="bi bi-pencil"></i>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="editArena(${arena.arenaId}, ${arena.stadiumId})" title="Edit Arena">
+                                <i class="bi bi-pencil me-1"></i>Edit
                             </button>
-                            <button class="btn-icon btn-availability" onclick="showAvailabilityModal(${arena.arenaId}, ${arena.stadiumId})" title="Set Availability">
-                                <i class="bi bi-clock"></i>
+                            <button class="btn btn-sm btn-outline-danger me-2" onclick="deleteArena(${arena.arenaId}, ${arena.stadiumId})" title="Delete Arena">
+                                <i class="bi bi-trash me-1"></i>Delete
                             </button>
-                            <button class="btn-icon btn-delete" onclick="deleteArena(${arena.arenaId}, ${arena.stadiumId})" title="Delete Arena">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            ${ownerRole === 'Owner' ? `<button class="btn btn-sm btn-outline-info" onclick="showAvailabilityModal(${arena.arenaId}, ${arena.stadiumId})" title="Set Availability"><i class="bi bi-clock me-1"></i>Availability</button>` : ''}
                         </td>
                     </tr>
                 `;
@@ -828,10 +834,14 @@ function displayUserAvailabilityTable(result) {
     const sortDirection = userAvailabilityState.sortDirection || 'DESC';
 
     // Generate sort icon
-    const getSortIcon = (col) => {
-        if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
-        return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
-    };
+        const getSortIcon = (col) => {
+            if (col !== sortColumn) {
+                return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+            }
+            return sortDirection === 'ASC' 
+                ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
+                : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
+        };
 
     // Generate sort handler
     const getSortHandler = (col) => {
@@ -840,7 +850,7 @@ function displayUserAvailabilityTable(result) {
     };
 
     const table = `
-        <table class="table table-striped table-hover data-table">
+        <table class="table data-table">
             <thead>
                 <tr>
                     <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium Name ${getSortIcon('StadiumName')}</th>
@@ -884,7 +894,9 @@ function displayUserAvailabilityTable(result) {
                         <td>${totalDuration}</td>
                         <td>$${price}</td>
                         <td>
-                            <button class="btn btn-primary btn-sm" onclick="bookAvailabilitySlot('${availabilityId}', ${arenaId}, '${date}', '${startTime}', '${endTime}')">Book Now</button>
+                            <button class="btn btn-primary btn-sm" onclick="bookAvailabilitySlot('${availabilityId}', ${arenaId}, '${date}', '${startTime}', '${endTime}')">
+                                <i class="bi bi-calendar-check me-1"></i>Book Now
+                            </button>
                         </td>
                     </tr>
                 `;
