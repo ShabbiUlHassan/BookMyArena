@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadOwnerDashboard();
     } else {
         document.getElementById('userDashboard').style.display = 'block';
-        loadAvailableArenas();
+        loadUserDashboard();
     }
 
     // Add stadium form handler
@@ -720,6 +720,237 @@ async function cancelUserBooking(bookingId) {
 
 // Make cancelUserBooking globally accessible
 window.cancelUserBooking = cancelUserBooking;
+
+// User availability state for pagination, search, and sorting
+let userAvailabilityState = {
+    pageNumber: 1,
+    pageSize: 10,
+    searchText: '',
+    sortColumn: 'CreatedDate',
+    sortDirection: 'DESC'
+};
+
+// Debounced search timeout for user availability
+let userAvailabilitySearchTimeout = null;
+
+async function loadUserDashboard() {
+    try {
+        await loadUserAvailabilityTable();
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
+async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.pageNumber, pageSize = userAvailabilityState.pageSize, searchText = userAvailabilityState.searchText, sortColumn = userAvailabilityState.sortColumn, sortDirection = userAvailabilityState.sortDirection) {
+    const tableContainer = document.getElementById('userAvailabilityTable');
+    const paginationContainer = document.getElementById('userAvailabilityPagination');
+    
+    if (!tableContainer) {
+        console.error('User availability table container not found');
+        return;
+    }
+
+    tableContainer.innerHTML = '<p>Loading availability...</p>';
+
+    try {
+        const result = await API.getUserAvailabilities({
+            searchText,
+            sortColumn,
+            sortDirection,
+            pageNumber,
+            pageSize
+        });
+
+        // Update state
+        userAvailabilityState = {
+            pageNumber: result.pageNumber || pageNumber,
+            pageSize: result.pageSize || pageSize,
+            searchText,
+            sortColumn,
+            sortDirection,
+            totalCount: result.totalCount || 0,
+            totalPages: result.totalPages || 0
+        };
+
+        displayUserAvailabilityTable(result);
+    } catch (error) {
+        console.error('Error loading availability:', error);
+        tableContainer.innerHTML = `<p class="error-message">Error loading availability: ${error.message}</p>`;
+    }
+}
+
+function displayUserAvailabilityTable(result) {
+    const tableContainer = document.getElementById('userAvailabilityTable');
+    const paginationContainer = document.getElementById('userAvailabilityPagination');
+    
+    if (!tableContainer) return;
+
+    if (!result || !result.availabilities || result.availabilities.length === 0) {
+        tableContainer.innerHTML = '<p>No available slots found at the moment. Please check back later.</p>';
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const sortColumn = userAvailabilityState.sortColumn || 'CreatedDate';
+    const sortDirection = userAvailabilityState.sortDirection || 'DESC';
+
+    // Generate sort icon
+    const getSortIcon = (col) => {
+        if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
+        return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+    };
+
+    // Generate sort handler
+    const getSortHandler = (col) => {
+        const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
+        return `handleUserAvailabilitySort('${col}', '${newDirection}')`;
+    };
+
+    const table = `
+        <table class="table table-striped table-hover data-table">
+            <thead>
+                <tr>
+                    <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium Name ${getSortIcon('StadiumName')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena Name ${getSortIcon('ArenaName')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Location')}">Location ${getSortIcon('Location')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('SportType')}">Sport Type ${getSortIcon('SportType')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Capacity')}">Capacity ${getSortIcon('Capacity')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
+                    <th>Total Duration (Minutes)</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${result.availabilities.map(availability => {
+                    const stadiumName = availability.stadiumName || 'N/A';
+                    const arenaName = availability.arenaName || 'N/A';
+                    const location = availability.location || 'N/A';
+                    const sportType = availability.sportType || 'N/A';
+                    const capacity = availability.capacity || 0;
+                    const date = availability.date || 'N/A';
+                    const startTime = availability.startTime || 'N/A';
+                    const endTime = availability.endTime || 'N/A';
+                    const totalDuration = availability.totalDuration || 0;
+                    const price = availability.price ? availability.price.toFixed(2) : '0.00';
+                    const availabilityId = availability.id || '';
+                    const arenaId = availability.arenaId || 0;
+                    
+                    return `
+                    <tr>
+                        <td>${stadiumName}</td>
+                        <td>${arenaName}</td>
+                        <td>${location}</td>
+                        <td>${sportType}</td>
+                        <td>${capacity} players</td>
+                        <td>${date}</td>
+                        <td>${startTime}</td>
+                        <td>${endTime}</td>
+                        <td>${totalDuration}</td>
+                        <td>$${price}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="bookAvailabilitySlot('${availabilityId}', ${arenaId}, '${date}', '${startTime}', '${endTime}')">Book Now</button>
+                        </td>
+                    </tr>
+                `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+    tableContainer.innerHTML = table;
+
+    // Display pagination
+    if (paginationContainer && result.totalPages > 0) {
+        paginationContainer.innerHTML = `
+            <div class="pagination-info">
+                Showing ${((userAvailabilityState.pageNumber - 1) * userAvailabilityState.pageSize) + 1} to ${Math.min(userAvailabilityState.pageNumber * userAvailabilityState.pageSize, userAvailabilityState.totalCount)} of ${userAvailabilityState.totalCount} records
+                <select class="page-size-select" onchange="handleUserAvailabilityPageSizeChange(this.value)">
+                    <option value="10" ${userAvailabilityState.pageSize === 10 ? 'selected' : ''}>10 per page</option>
+                    <option value="25" ${userAvailabilityState.pageSize === 25 ? 'selected' : ''}>25 per page</option>
+                    <option value="50" ${userAvailabilityState.pageSize === 50 ? 'selected' : ''}>50 per page</option>
+                    <option value="100" ${userAvailabilityState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
+                </select>
+            </div>
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item ${userAvailabilityState.pageNumber === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${userAvailabilityState.pageNumber - 1}); return false;">Previous</a>
+                    </li>
+                    ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
+                        <li class="page-item ${page === userAvailabilityState.pageNumber ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${page}); return false;">${page}</a>
+                        </li>
+                    `).join('')}
+                    <li class="page-item ${userAvailabilityState.pageNumber === userAvailabilityState.totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${userAvailabilityState.pageNumber + 1}); return false;">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        `;
+    } else if (paginationContainer) {
+        paginationContainer.innerHTML = '';
+    }
+}
+
+function handleUserAvailabilitySearch(event) {
+    if (event.key === 'Enter') {
+        const searchInput = document.getElementById('userAvailabilitySearch');
+        const searchText = searchInput ? searchInput.value : '';
+        loadUserAvailabilityTable(1, userAvailabilityState.pageSize || 10, searchText, userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
+    }
+}
+
+function handleUserAvailabilitySearchInput(event) {
+    clearTimeout(userAvailabilitySearchTimeout);
+    userAvailabilitySearchTimeout = setTimeout(() => {
+        const searchInput = document.getElementById('userAvailabilitySearch');
+        const searchText = searchInput ? searchInput.value : '';
+        loadUserAvailabilityTable(1, userAvailabilityState.pageSize || 10, searchText, userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
+    }, 500); // 500ms delay
+}
+
+function handleUserAvailabilitySort(sortColumn, sortDirection) {
+    loadUserAvailabilityTable(1, userAvailabilityState.pageSize || 10, userAvailabilityState.searchText || '', sortColumn, sortDirection);
+}
+
+function handleUserAvailabilityPageChange(pageNumber) {
+    loadUserAvailabilityTable(pageNumber, userAvailabilityState.pageSize || 10, userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
+}
+
+function handleUserAvailabilityPageSizeChange(pageSize) {
+    loadUserAvailabilityTable(1, parseInt(pageSize), userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
+}
+
+async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, endTime) {
+    // Create datetime strings for booking
+    // Combine date and time to create proper datetime strings
+    const slotStart = new Date(`${date}T${startTime}`).toISOString();
+    const slotEnd = new Date(`${date}T${endTime}`).toISOString();
+    
+    try {
+        await API.createBooking({
+            arenaId: arenaId,
+            slotStart: slotStart,
+            slotEnd: slotEnd
+        });
+        
+        alert('Booking created successfully!');
+        // Reload the availability table to reflect the booking
+        await loadUserAvailabilityTable();
+    } catch (error) {
+        alert('Error creating booking: ' + error.message);
+    }
+}
+
+// Make functions globally accessible
+window.handleUserAvailabilitySearch = handleUserAvailabilitySearch;
+window.handleUserAvailabilitySearchInput = handleUserAvailabilitySearchInput;
+window.handleUserAvailabilitySort = handleUserAvailabilitySort;
+window.handleUserAvailabilityPageChange = handleUserAvailabilityPageChange;
+window.handleUserAvailabilityPageSizeChange = handleUserAvailabilityPageSizeChange;
+window.bookAvailabilitySlot = bookAvailabilitySlot;
 
 async function loadAvailableArenas() {
     const container = document.getElementById('availableArenas');

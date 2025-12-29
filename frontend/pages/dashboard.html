@@ -87,9 +87,33 @@
 
             <div id="userDashboard" style="display: none;">
                 <section class="section">
-                    <h2>Available Arenas</h2>
-                    <p>Browse and book available arenas from all owners.</p>
-                    <div id="availableArenas" class="table-container"></div>
+                    <h2>Available Arena Slots</h2>
+                    <p>Browse and book available time slots from all owners.</p>
+                    
+                    <!-- Search Section -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label for="userAvailabilitySearch" class="form-label">Search</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="userAvailabilitySearch" 
+                                        placeholder="Search by stadium, arena, location, date, time..."
+                                        onkeyup="handleUserAvailabilitySearch(event)"
+                                        oninput="handleUserAvailabilitySearchInput(event)"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div id="userAvailabilityTable" class="table-container"></div>
+                    
+                    <!-- Pagination Footer -->
+                    <div id="userAvailabilityPagination" class="arena-table-footer"></div>
                 </section>
             </div>
         </main>

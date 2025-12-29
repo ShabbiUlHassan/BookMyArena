@@ -198,6 +198,226 @@ func getOrderByColumn(sortColumn string) string {
 	return "aa.CreatedDate" // default
 }
 
+// getOrderByColumnForUser maps frontend sort column names to actual SQL column/expression for user availability
+func getOrderByColumnForUser(sortColumn string) string {
+	columnMap := map[string]string{
+		"StadiumName": "s.Name",
+		"ArenaName":   "a.Name",
+		"Location":    "s.Location",
+		"SportType":   "a.SportType",
+		"Capacity":    "a.Capacity",
+		"Date":        "aa.Date",
+		"StartTime":   "aa.StartTime",
+		"EndTime":     "aa.EndTime",
+		"Price":       "a.Price",
+		"CreatedDate": "aa.CreatedDate",
+	}
+
+	if mapped, ok := columnMap[sortColumn]; ok {
+		return mapped
+	}
+	return "aa.CreatedDate" // default
+}
+
+func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) (*models.PaginatedUserAvailabilities, error) {
+	// Validate and set sort column (whitelist to prevent SQL injection)
+	sortColumn := params.SortColumn
+	validSortColumns := map[string]bool{
+		"StadiumName": true, "ArenaName": true, "Location": true, "SportType": true, "Capacity": true,
+		"Date": true, "StartTime": true, "EndTime": true, "Price": true, "CreatedDate": true,
+	}
+	if !validSortColumns[sortColumn] {
+		sortColumn = "CreatedDate"
+	}
+
+	// Validate sort direction
+	sortDirection := params.SortDirection
+	if sortDirection != "ASC" && sortDirection != "DESC" {
+		sortDirection = "DESC"
+	}
+
+	// Validate pagination parameters
+	if params.PageNumber < 1 {
+		params.PageNumber = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 10
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Calculate pagination
+	offset := (params.PageNumber - 1) * params.PageSize
+
+	// Build WHERE clause for count and main query
+	var countQuery string
+	var query string
+	var countArgs []interface{}
+	var queryArgs []interface{}
+
+	if params.SearchText != "" {
+		searchPattern := "%" + params.SearchText + "%"
+		countQuery = `
+			SELECT COUNT(*) 
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			WHERE aa.IsDeleted = 0 
+			AND aa.AvailabilityDone = 0
+			AND (
+				s.Name LIKE @p1 OR
+				a.Name LIKE @p1 OR
+				s.Location LIKE @p1 OR
+				a.SportType LIKE @p1 OR
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p1 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p1 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p1 OR
+				CAST(a.Price AS VARCHAR) LIKE @p1 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p1
+			)
+		`
+		countArgs = []interface{}{searchPattern}
+
+		// Map sort column to actual SQL column/expression
+		orderByColumn := getOrderByColumnForUser(sortColumn)
+		query = fmt.Sprintf(`
+			SELECT 
+				CAST(aa.Id AS VARCHAR(36)) AS Id,
+				s.Name AS StadiumName,
+				a.Name AS ArenaName,
+				s.Location AS Location,
+				a.SportType AS SportType,
+				a.Capacity AS Capacity,
+				CONVERT(VARCHAR, aa.Date, 120) AS Date,
+				CAST(aa.StartTime AS VARCHAR) AS StartTime,
+				CAST(aa.EndTime AS VARCHAR) AS EndTime,
+				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
+				a.Price AS Price,
+				aa.ArenaId,
+				aa.StadiumId
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			WHERE aa.IsDeleted = 0 
+			AND aa.AvailabilityDone = 0
+			AND (
+				s.Name LIKE @p1 OR
+				a.Name LIKE @p1 OR
+				s.Location LIKE @p1 OR
+				a.SportType LIKE @p1 OR
+				CAST(a.Capacity AS VARCHAR) LIKE @p1 OR
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p1 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p1 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p1 OR
+				CAST(a.Price AS VARCHAR) LIKE @p1 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p1
+			)
+			ORDER BY %s %s 
+			OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
+		`, orderByColumn, sortDirection)
+		queryArgs = []interface{}{searchPattern, offset, params.PageSize}
+	} else {
+		countQuery = `
+			SELECT COUNT(*) 
+			FROM ArenaAvailability aa
+			WHERE aa.IsDeleted = 0 AND aa.AvailabilityDone = 0
+		`
+		countArgs = []interface{}{}
+
+		// Map sort column to actual SQL column/expression
+		orderByColumn := getOrderByColumnForUser(sortColumn)
+		query = fmt.Sprintf(`
+			SELECT 
+				CAST(aa.Id AS VARCHAR(36)) AS Id,
+				s.Name AS StadiumName,
+				a.Name AS ArenaName,
+				s.Location AS Location,
+				a.SportType AS SportType,
+				a.Capacity AS Capacity,
+				CONVERT(VARCHAR, aa.Date, 120) AS Date,
+				CAST(aa.StartTime AS VARCHAR) AS StartTime,
+				CAST(aa.EndTime AS VARCHAR) AS EndTime,
+				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
+				a.Price AS Price,
+				aa.ArenaId,
+				aa.StadiumId
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			WHERE aa.IsDeleted = 0 AND aa.AvailabilityDone = 0
+			ORDER BY %s %s 
+			OFFSET @p1 ROWS FETCH NEXT @p2 ROWS ONLY
+		`, orderByColumn, sortDirection)
+		queryArgs = []interface{}{offset, params.PageSize}
+	}
+
+	// Get total count
+	var totalCount int
+	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
+	if params.PageNumber > totalPages && totalPages > 0 {
+		params.PageNumber = totalPages
+		// Recalculate offset and query args if page number was adjusted
+		offset = (params.PageNumber - 1) * params.PageSize
+		if params.SearchText != "" {
+			queryArgs[1] = offset
+		} else {
+			queryArgs[0] = offset
+		}
+	}
+
+	// Execute main query
+	rows, err := config.DB.Query(query, queryArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query availabilities: %w", err)
+	}
+	defer rows.Close()
+
+	var availabilities []models.UserAvailabilityWithDetails
+	for rows.Next() {
+		var availability models.UserAvailabilityWithDetails
+
+		err := rows.Scan(
+			&availability.Id,
+			&availability.StadiumName,
+			&availability.ArenaName,
+			&availability.Location,
+			&availability.SportType,
+			&availability.Capacity,
+			&availability.Date,
+			&availability.StartTime,
+			&availability.EndTime,
+			&availability.TotalDuration,
+			&availability.Price,
+			&availability.ArenaId,
+			&availability.StadiumId,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan availability: %w", err)
+		}
+
+		availabilities = append(availabilities, availability)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return &models.PaginatedUserAvailabilities{
+		Availabilities: availabilities,
+		TotalCount:     totalCount,
+		TotalPages:     totalPages,
+		PageNumber:     params.PageNumber,
+		PageSize:       params.PageSize,
+	}, nil
+}
+
 func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*models.PaginatedAvailabilities, error) {
 	// Validate and set sort column (whitelist to prevent SQL injection)
 	sortColumn := params.SortColumn

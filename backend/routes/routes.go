@@ -56,6 +56,7 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/arenas/{id}/availability", controllers.GetArenaAvailabilities).Methods("GET", "OPTIONS")
 	api.HandleFunc("/availability", controllers.GetOwnerAvailabilities).Methods("GET", "OPTIONS")
 	api.HandleFunc("/availability/{id}", controllers.DeleteArenaAvailability).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/availability/user", controllers.GetUserAvailabilities).Methods("GET", "OPTIONS")
 
 	// Booking routes
 	api.HandleFunc("/bookings", controllers.CreateBooking).Methods("POST", "OPTIONS")
