@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (role === 'owner' || user.role === 'Owner') {
         document.getElementById('ownerDashboard').style.display = 'block';
+        document.getElementById('availabilityNavItem').style.display = 'block';
         document.getElementById('requestsNavItem').style.display = 'block';
         document.getElementById('paymentsNavItem').style.display = 'block';
         loadOwnerDashboard();

@@ -415,7 +415,8 @@ small {
 /* Dashboard Layout */
 .dashboard-layout {
     display: flex;
-    min-height: calc(100vh - 60px);
+    min-height: calc(100vh - 56px);
+    position: relative;
 }
 
 .sidebar {
@@ -425,10 +426,11 @@ small {
     padding: 20px 0;
     position: fixed;
     left: 0;
-    top: 60px;
-    height: calc(100vh - 60px);
+    top: 56px; /* Bootstrap navbar height */
+    height: calc(100vh - 56px);
     overflow-y: auto;
     box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+    z-index: 1000;
 }
 
 .sidebar-nav ul {
@@ -474,6 +476,8 @@ small {
     padding: 2rem;
     width: calc(100% - 250px);
     flex: 1;
+    min-height: calc(100vh - 56px);
+    position: relative;
 }
 
 .dashboard-section {

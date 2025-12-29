@@ -22,8 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userStr) {
         const user = JSON.parse(userStr);
         if (user.role === 'Owner') {
+            const availabilityNav = document.getElementById('availabilityNavItem');
             const requestsNav = document.getElementById('requestsNavItem');
             const paymentsNav = document.getElementById('paymentsNavItem');
+            if (availabilityNav) availabilityNav.style.display = 'block';
             if (requestsNav) requestsNav.style.display = 'block';
             if (paymentsNav) paymentsNav.style.display = 'block';
         }
