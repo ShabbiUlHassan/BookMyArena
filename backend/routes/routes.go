@@ -67,6 +67,10 @@ func SetupRoutes() *mux.Router {
 	// Booking Request routes
 	api.HandleFunc("/booking-requests/details", controllers.GetBookingRequestDetails).Methods("GET", "OPTIONS")
 	api.HandleFunc("/booking-requests", controllers.CreateBookingRequest).Methods("POST", "OPTIONS")
+	api.HandleFunc("/booking-requests/user", controllers.GetUserBookingRequests).Methods("GET", "OPTIONS")
+	api.HandleFunc("/booking-requests/owner", controllers.GetOwnerBookingRequests).Methods("GET", "OPTIONS")
+	api.HandleFunc("/booking-requests/{id}", controllers.DeleteBookingRequest).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/booking-requests/{id}/status", controllers.UpdateBookingRequestStatus).Methods("PUT", "OPTIONS")
 
 	// Serve static files (frontend)
 	fileServer := http.FileServer(http.Dir("./frontend/"))

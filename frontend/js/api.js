@@ -248,5 +248,44 @@ const API = {
             body: JSON.stringify({ availabilityId: availabilityId }),
         });
     },
+
+    async getUserBookingRequests(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/booking-requests/user?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async getOwnerBookingRequests(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/booking-requests/owner?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async deleteBookingRequest(bookingRequestId) {
+        return this.request(`/api/booking-requests/${bookingRequestId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    async updateBookingRequestStatus(bookingRequestId, status) {
+        return this.request(`/api/booking-requests/${bookingRequestId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: status }),
+        });
+    },
 };
 

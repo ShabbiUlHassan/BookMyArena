@@ -11,53 +11,95 @@
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="dashboard.html">BookMyArena</a>
-            <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
-                <span class="text-light" id="userName"></span>
-                <a class="nav-link" href="search.html">Search Arenas</a>
-                <a class="nav-link" href="#" id="logoutLink">Logout</a>
+            <a class="navbar-brand" href="dashboard.html">BookMyArena</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <a class="nav-link" href="#" onclick="logout(); return false;">Logout</a>
             </div>
         </div>
     </nav>
 
-    <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <nav class="sidebar-nav">
-                <ul class="list-unstyled">
-                    <li><a href="dashboard.html" class="nav-link">
-                        <i class="bi bi-house-door me-2"></i> Home
-                    </a></li>
-                    <li><a href="booking.html" class="nav-link active">
-                        <i class="bi bi-calendar-check me-2"></i> Booking
-                    </a></li>
-                    <li id="availabilityNavItem" style="display: none;"><a href="availability.html" class="nav-link">
-                        <i class="bi bi-calendar-event me-2"></i> Availability
-                    </a></li>
-                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
-                        <i class="bi bi-clipboard-check me-2"></i> Requests
-                    </a></li>
-                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
-                        <i class="bi bi-credit-card me-2"></i> Payments
-                    </a></li>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar bg-dark" id="sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="bi bi-house-door me-2"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="booking.html">
+                            <i class="bi bi-calendar-check me-2"></i>Booking
+                        </a>
+                    </li>
+                    <li class="nav-item" id="requestsNavItem" style="display: none;">
+                        <a class="nav-link" href="requests.html">
+                            <i class="bi bi-envelope me-2"></i>Requests
+                        </a>
+                    </li>
+                    <li class="nav-item" id="paymentsNavItem" style="display: none;">
+                        <a class="nav-link" href="payments.html">
+                            <i class="bi bi-credit-card me-2"></i>Payments
+                        </a>
+                    </li>
+                    <li class="nav-item" id="availabilityNavItem" style="display: none;">
+                        <a class="nav-link" href="availability.html">
+                            <i class="bi bi-clock me-2"></i>Availability
+                        </a>
+                    </li>
                 </ul>
             </nav>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="dashboard-content">
-            <div id="ownerBookings" style="display: none;">
-                <h2 class="mb-4">My Bookings</h2>
-                <div id="ownerBookingsTable" class="table-container"></div>
-            </div>
+            <!-- Main Content -->
+            <main class="col-md-9 col-lg-10 dashboard-content">
+                <!-- Owner Bookings Section -->
+                <div id="ownerBookingSection" style="display: none;">
+                    <section class="section">
+                        <h2>All Bookings</h2>
+                        <p>Manage all bookings for your arenas.</p>
+                        <div id="ownerBookingsTable" class="table-container"></div>
+                    </section>
+                </div>
 
-            <div id="userBookings" style="display: none;">
-                <h2 class="mb-4">My Bookings</h2>
-                <div id="userBookingsTable" class="table-container"></div>
-            </div>
-        </main>
+                <!-- User Booking Requests Section -->
+                <div id="userBookingSection" style="display: none;">
+                    <section class="section">
+                        <h2>My Booking Requests</h2>
+                        <p>View and manage your booking requests.</p>
+                        
+                        <!-- Search Section -->
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-6">
+                                        <label for="bookingRequestSearch" class="form-label">Search</label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            id="bookingRequestSearch" 
+                                            placeholder="Search by stadium, arena, date, time, status..."
+                                            onkeyup="handleBookingRequestSearch(event)"
+                                            oninput="handleBookingRequestSearchInput(event)"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Table Container -->
+                        <div id="bookingRequestTable" class="table-container"></div>
+                        
+                        <!-- Pagination Footer -->
+                        <div id="bookingRequestPagination" class="arena-table-footer"></div>
+                    </section>
+                </div>
+            </main>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -66,171 +108,232 @@
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
     <script>
+        // User Booking Requests State
+        let bookingRequestState = {
+            pageNumber: 1,
+            pageSize: 10,
+            searchText: '',
+            sortColumn: 'CreatedDate',
+            sortDirection: 'DESC'
+        };
+        let bookingRequestSearchTimeout = null;
+
+        async function loadBookingRequests(pageNumber = bookingRequestState.pageNumber, pageSize = bookingRequestState.pageSize, searchText = bookingRequestState.searchText, sortColumn = bookingRequestState.sortColumn, sortDirection = bookingRequestState.sortDirection) {
+            const tableContainer = document.getElementById('bookingRequestTable');
+            const paginationContainer = document.getElementById('bookingRequestPagination');
+            
+            if (!tableContainer) return;
+
+            tableContainer.innerHTML = '<p>Loading booking requests...</p>';
+
+            try {
+                const result = await API.getUserBookingRequests({
+                    searchText,
+                    sortColumn,
+                    sortDirection,
+                    pageNumber,
+                    pageSize
+                });
+
+                console.log('Loaded booking requests:', result);
+
+                bookingRequestState = {
+                    pageNumber: result.pageNumber || 1,
+                    pageSize: result.pageSize || 10,
+                    searchText: searchText,
+                    sortColumn: sortColumn,
+                    sortDirection: sortDirection,
+                    totalCount: result.totalCount || 0,
+                    totalPages: result.totalPages || 0
+                };
+
+                displayBookingRequests(result);
+            } catch (error) {
+                console.error('Error loading booking requests:', error);
+                tableContainer.innerHTML = `<p class="error-message">Error loading booking requests: ${error.message}</p>`;
+            }
+        }
+
+        function displayBookingRequests(result) {
+            const tableContainer = document.getElementById('bookingRequestTable');
+            const paginationContainer = document.getElementById('bookingRequestPagination');
+            
+            if (!tableContainer) return;
+
+            if (!result || !result.bookingRequests || result.bookingRequests.length === 0) {
+                tableContainer.innerHTML = '<p>No booking requests found.</p>';
+                if (paginationContainer) paginationContainer.innerHTML = '';
+                return;
+            }
+
+            const { sortColumn, sortDirection } = bookingRequestState;
+
+            const getSortIcon = (col) => {
+                if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
+                return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+            };
+
+            const getSortHandler = (col) => {
+                const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
+                return `handleBookingRequestSort('${col}', '${newDirection}')`;
+            };
+
+            const table = `
+                <table class="table table-striped table-hover data-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
+                            <th>Total Duration (Minutes)</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Status')}">Status ${getSortIcon('Status')}</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${result.bookingRequests.map(br => {
+                            const stadiumName = br.stadiumName || 'N/A';
+                            const arenaName = br.arenaName || 'N/A';
+                            const date = br.date || 'N/A';
+                            const startTime = br.startTime || 'N/A';
+                            const endTime = br.endTime || 'N/A';
+                            const totalDuration = br.totalDuration || 0;
+                            const price = br.price ? br.price.toFixed(2) : '0.00';
+                            const status = br.status || 'N/A';
+                            const bookingRequestId = br.bookingRequestId || 0;
+                            const canDelete = status === 'Pending';
+                            
+                            return `
+                            <tr>
+                                <td>${stadiumName}</td>
+                                <td>${arenaName}</td>
+                                <td>${date}</td>
+                                <td>${startTime}</td>
+                                <td>${endTime}</td>
+                                <td>${totalDuration}</td>
+                                <td>$${price}</td>
+                                <td>${status}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger ${!canDelete ? 'disabled' : ''}" 
+                                            onclick="${canDelete ? `deleteBookingRequest(${bookingRequestId})` : 'return false;'}" 
+                                            ${!canDelete ? 'disabled title="Can only delete pending requests"' : ''}>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            tableContainer.innerHTML = table;
+
+            // Display pagination
+            if (paginationContainer && result.totalPages > 0) {
+                paginationContainer.innerHTML = `
+                    <div class="pagination-info">
+                        Showing ${((bookingRequestState.pageNumber - 1) * bookingRequestState.pageSize) + 1} to ${Math.min(bookingRequestState.pageNumber * bookingRequestState.pageSize, bookingRequestState.totalCount)} of ${bookingRequestState.totalCount} records
+                        <select class="page-size-select" onchange="handleBookingRequestPageSizeChange(this.value)">
+                            <option value="10" ${bookingRequestState.pageSize === 10 ? 'selected' : ''}>10 per page</option>
+                            <option value="25" ${bookingRequestState.pageSize === 25 ? 'selected' : ''}>25 per page</option>
+                            <option value="50" ${bookingRequestState.pageSize === 50 ? 'selected' : ''}>50 per page</option>
+                            <option value="100" ${bookingRequestState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
+                        </select>
+                    </div>
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item ${bookingRequestState.pageNumber === 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="#" onclick="handleBookingRequestPageChange(${bookingRequestState.pageNumber - 1}); return false;">Previous</a>
+                            </li>
+                            ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
+                                <li class="page-item ${page === bookingRequestState.pageNumber ? 'active' : ''}">
+                                    <a class="page-link" href="#" onclick="handleBookingRequestPageChange(${page}); return false;">${page}</a>
+                                </li>
+                            `).join('')}
+                            <li class="page-item ${bookingRequestState.pageNumber === bookingRequestState.totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="#" onclick="handleBookingRequestPageChange(${bookingRequestState.pageNumber + 1}); return false;">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                `;
+            } else if (paginationContainer) {
+                paginationContainer.innerHTML = '';
+            }
+        }
+
+        function handleBookingRequestSearch(event) {
+            if (event.key === 'Enter') {
+                const searchInput = document.getElementById('bookingRequestSearch');
+                const searchText = searchInput ? searchInput.value : '';
+                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+            }
+        }
+
+        function handleBookingRequestSearchInput(event) {
+            clearTimeout(bookingRequestSearchTimeout);
+            bookingRequestSearchTimeout = setTimeout(() => {
+                const searchInput = document.getElementById('bookingRequestSearch');
+                const searchText = searchInput ? searchInput.value : '';
+                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+            }, 500);
+        }
+
+        function handleBookingRequestSort(sortColumn, sortDirection) {
+            loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, sortColumn, sortDirection);
+        }
+
+        function handleBookingRequestPageChange(pageNumber) {
+            loadBookingRequests(pageNumber, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+        }
+
+        function handleBookingRequestPageSizeChange(pageSize) {
+            loadBookingRequests(1, parseInt(pageSize), bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+        }
+
+        async function deleteBookingRequest(bookingRequestId) {
+            if (!confirm('Are you sure you want to delete this booking request?')) {
+                return;
+            }
+
+            try {
+                await API.deleteBookingRequest(bookingRequestId);
+                alert('Booking request deleted successfully!');
+                await loadBookingRequests();
+            } catch (error) {
+                alert('Error deleting booking request: ' + error.message);
+            }
+        }
+
+        // Make functions globally accessible
+        window.handleBookingRequestSearch = handleBookingRequestSearch;
+        window.handleBookingRequestSearchInput = handleBookingRequestSearchInput;
+        window.handleBookingRequestSort = handleBookingRequestSort;
+        window.handleBookingRequestPageChange = handleBookingRequestPageChange;
+        window.handleBookingRequestPageSizeChange = handleBookingRequestPageSizeChange;
+        window.deleteBookingRequest = deleteBookingRequest;
+
+        // Load data on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            const userStr = sessionStorage.getItem('user');
-            if (!userStr) {
+            // Check authentication
+            const user = await API.getCurrentUser();
+            if (!user) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            const user = JSON.parse(userStr);
-            const role = user.role === 'Owner' ? 'owner' : 'user';
-
-            // Show/hide owner-only navigation items
-            if (role === 'owner') {
-                document.getElementById('requestsNavItem').style.display = 'block';
-                document.getElementById('paymentsNavItem').style.display = 'block';
-                document.getElementById('ownerBookings').style.display = 'block';
-                await loadOwnerBookings();
+            // Show/hide sections based on user role
+            if (user.role === 'Owner') {
+                document.getElementById('ownerBookingSection').style.display = 'block';
+                document.getElementById('userBookingSection').style.display = 'none';
+                // Load owner bookings if needed
             } else {
-                document.getElementById('userBookings').style.display = 'block';
-                await loadUserBookings();
+                document.getElementById('ownerBookingSection').style.display = 'none';
+                document.getElementById('userBookingSection').style.display = 'block';
+                await loadBookingRequests();
             }
-
-            async function loadOwnerBookings() {
-                const container = document.getElementById('ownerBookingsTable');
-                container.innerHTML = '<p>Loading bookings...</p>';
-                
-                try {
-                    const bookings = await API.getBookings();
-                    displayOwnerBookings(bookings);
-                } catch (error) {
-                    console.error('Error loading bookings:', error);
-                    container.innerHTML = '<p class="error-message">Error loading bookings: ' + error.message + '</p>';
-                }
-            }
-
-            function displayOwnerBookings(bookings) {
-                const container = document.getElementById('ownerBookingsTable');
-                if (!bookings || bookings.length === 0) {
-                    container.innerHTML = '<p>No bookings yet.</p>';
-                    return;
-                }
-
-                const table = `
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Booking ID</th>
-                                <th>Arena</th>
-                                <th>Stadium</th>
-                                <th>Date & Time</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${bookings.map(booking => `
-                                <tr>
-                                    <td>${booking.bookingId}</td>
-                                    <td>${booking.arenaName}</td>
-                                    <td>${booking.stadiumName}</td>
-                                    <td>${new Date(booking.slotStart).toLocaleString()} - ${new Date(booking.slotEnd).toLocaleString()}</td>
-                                    <td>${booking.status}</td>
-                                    <td>
-                                        ${booking.status === 'Pending' ? `
-                                            <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${booking.bookingId}, 'Confirmed')">Confirm</button>
-                                            <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${booking.bookingId}, 'Cancelled')">Reject</button>
-                                        ` : ''}
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = table;
-            }
-
-            async function loadUserBookings() {
-                const container = document.getElementById('userBookingsTable');
-                container.innerHTML = '<p>Loading bookings...</p>';
-                
-                try {
-                    const bookings = await API.getBookings();
-                    displayUserBookings(bookings);
-                } catch (error) {
-                    console.error('Error loading bookings:', error);
-                    container.innerHTML = `<p class="error-message">Error loading bookings: ${error.message || 'Please try again.'}</p>`;
-                }
-            }
-
-            function displayUserBookings(bookings) {
-                const container = document.getElementById('userBookingsTable');
-                
-                if (!bookings || !Array.isArray(bookings) || bookings.length === 0) {
-                    container.innerHTML = '<p>No bookings yet. <a href="search.html" class="btn btn-primary">Search & Book Arenas</a></p>';
-                    return;
-                }
-
-                const table = `
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Arena</th>
-                                <th>Stadium</th>
-                                <th>Location</th>
-                                <th>Date & Time</th>
-                                <th>Price</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${bookings.map(booking => {
-                                const arenaName = booking.arenaName || 'N/A';
-                                const stadiumName = booking.stadiumName || 'N/A';
-                                const location = booking.location || 'N/A';
-                                const slotStart = booking.slotStart ? new Date(booking.slotStart).toLocaleString() : 'N/A';
-                                const slotEnd = booking.slotEnd ? new Date(booking.slotEnd).toLocaleString() : 'N/A';
-                                const price = booking.price ? `$${booking.price.toFixed(2)}` : '$0.00';
-                                const status = booking.status || 'Unknown';
-                                const bookingId = booking.bookingId || 0;
-                                
-                                return `
-                                <tr>
-                                    <td>${arenaName}</td>
-                                    <td>${stadiumName}</td>
-                                    <td>${location}</td>
-                                    <td>${slotStart} - ${slotEnd}</td>
-                                    <td>${price}</td>
-                                    <td>${status}</td>
-                                    <td>
-                                        ${status !== 'Cancelled' ? `
-                                            <button class="btn btn-sm btn-danger" onclick="cancelBooking(${bookingId})">Cancel</button>
-                                        ` : ''}
-                                    </td>
-                                </tr>
-                            `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = table;
-            }
-
-            async function updateBookingStatus(bookingId, status) {
-                try {
-                    await API.updateBookingStatus(bookingId, status);
-                    await loadOwnerBookings();
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
-            }
-
-            async function cancelBooking(bookingId) {
-                if (!confirm('Are you sure you want to cancel this booking?')) {
-                    return;
-                }
-                try {
-                    await API.cancelBooking(bookingId);
-                    await loadUserBookings();
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
-            }
-
-            window.updateBookingStatus = updateBookingStatus;
-            window.cancelBooking = cancelBooking;
         });
     </script>
 </body>
