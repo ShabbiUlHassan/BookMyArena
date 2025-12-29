@@ -36,10 +36,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add arena form handler
+    // Add/Edit arena form handler
     document.getElementById('addArenaForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const form = document.getElementById('addArenaForm');
         const stadiumId = parseInt(document.getElementById('arenaStadiumId').value);
+        const arenaId = form.dataset.arenaId;
+        const isEdit = form.dataset.isEdit === 'true';
+        
         const arenaData = {
             stadiumId: stadiumId,
             name: document.getElementById('arenaName').value,
@@ -50,7 +54,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         try {
-            await API.createArena(arenaData);
+            if (isEdit && arenaId) {
+                await API.updateArena(parseInt(arenaId), arenaData);
+            } else {
+                await API.createArena(arenaData);
+            }
             closeAddArenaModal();
             // Reload arenas for the specific stadium
             const state = stadiumArenaState[stadiumId] || {};
@@ -196,6 +204,7 @@ function displayArenasTable(stadiumId, result) {
                     <th class="sortable-header" onclick="${getSortHandler('SlotDuration')}">Slot Duration ${getSortIcon('SlotDuration')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('Price')}">Price per Slot ${getSortIcon('Price')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('CreatedAt')}">Created At ${getSortIcon('CreatedAt')}</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -215,6 +224,14 @@ function displayArenasTable(stadiumId, result) {
                         <td>${slotDuration} minutes</td>
                         <td>$${price}</td>
                         <td>${createdAt}</td>
+                        <td>
+                            <button class="btn-icon btn-edit" onclick="editArena(${arena.arenaId}, ${arena.stadiumId})" title="Edit Arena">
+                                ✏️
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="deleteArena(${arena.arenaId}, ${stadiumId})" title="Delete Arena">
+                                🗑️
+                            </button>
+                        </td>
                     </tr>
                 `;
                 }).join('')}
@@ -308,7 +325,16 @@ function showAddArenaModal(stadiumId) {
 
 function closeAddArenaModal() {
     document.getElementById('addArenaModal').style.display = 'none';
-    document.getElementById('addArenaForm').reset();
+    const form = document.getElementById('addArenaForm');
+    form.reset();
+    delete form.dataset.arenaId;
+    delete form.dataset.isEdit;
+    
+    // Reset modal title and button text
+    const modalTitle = document.querySelector('#addArenaModal h3');
+    const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
+    if (modalTitle) modalTitle.textContent = 'Add Arena';
+    if (submitButton) submitButton.textContent = 'Add Arena';
 }
 
 function displayOwnerBookings(bookings) {
@@ -562,11 +588,57 @@ function displayAvailableArenas(arenas) {
     container.innerHTML = table;
 }
 
+async function editArena(arenaId, stadiumId) {
+    try {
+        const arena = await API.getArena(arenaId);
+        
+        // Populate the form with arena data
+        document.getElementById('arenaStadiumId').value = stadiumId;
+        document.getElementById('arenaName').value = arena.name || '';
+        document.getElementById('arenaSportType').value = arena.sportType || '';
+        document.getElementById('arenaCapacity').value = arena.capacity || '';
+        document.getElementById('arenaSlotDuration').value = arena.slotDuration || '';
+        document.getElementById('arenaPrice').value = arena.price || '';
+        
+        // Store the arena ID for update
+        document.getElementById('addArenaForm').dataset.arenaId = arenaId;
+        document.getElementById('addArenaForm').dataset.isEdit = 'true';
+        
+        // Change modal title and button text
+        const modalTitle = document.querySelector('#addArenaModal h3');
+        const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
+        if (modalTitle) modalTitle.textContent = 'Edit Arena';
+        if (submitButton) submitButton.textContent = 'Update Arena';
+        
+        // Show the modal
+        document.getElementById('addArenaModal').style.display = 'block';
+    } catch (error) {
+        alert('Error loading arena: ' + error.message);
+    }
+}
+
+async function deleteArena(arenaId, stadiumId) {
+    if (!confirm('Are you sure you want to delete this arena? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        await API.deleteArena(arenaId);
+        // Reload arenas for the stadium
+        const state = stadiumArenaState[stadiumId] || {};
+        loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
+    } catch (error) {
+        alert('Error deleting arena: ' + error.message);
+    }
+}
+
 // Make modal functions globally accessible
 window.showAddStadiumModal = showAddStadiumModal;
 window.closeAddStadiumModal = closeAddStadiumModal;
 window.showAddArenaModal = showAddArenaModal;
 window.closeAddArenaModal = closeAddArenaModal;
+window.editArena = editArena;
+window.deleteArena = deleteArena;
 
 // Close modals when clicking outside
 window.onclick = function(event) {

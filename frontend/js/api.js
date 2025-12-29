@@ -126,6 +126,25 @@ const API = {
         });
     },
 
+    async getArena(arenaId) {
+        return this.request(`/api/arenas/${arenaId}`, {
+            method: 'GET',
+        });
+    },
+
+    async updateArena(arenaId, arenaData) {
+        return this.request(`/api/arenas/${arenaId}`, {
+            method: 'PUT',
+            body: JSON.stringify(arenaData),
+        });
+    },
+
+    async deleteArena(arenaId) {
+        return this.request(`/api/arenas/${arenaId}`, {
+            method: 'DELETE',
+        });
+    },
+
     async searchArenas(filters) {
         const params = new URLSearchParams();
         if (filters.location) params.append('location', filters.location);

@@ -47,6 +47,8 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/arenas", controllers.GetAllArenas).Methods("GET", "OPTIONS")
 	api.HandleFunc("/arenas/search", controllers.SearchArenas).Methods("GET", "OPTIONS")
 	api.HandleFunc("/arenas/{id}", controllers.GetArena).Methods("GET", "OPTIONS")
+	api.HandleFunc("/arenas/{id}", controllers.UpdateArena).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/arenas/{id}", controllers.DeleteArena).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/stadiums/{stadiumId}/arenas", controllers.GetArenasByStadium).Methods("GET", "OPTIONS")
 
 	// Booking routes
@@ -58,7 +60,7 @@ func SetupRoutes() *mux.Router {
 	// Serve static files (frontend)
 	fileServer := http.FileServer(http.Dir("./frontend/"))
 	r.PathPrefix("/frontend/").Handler(http.StripPrefix("/frontend/", fileServer))
-	
+
 	// Serve index.html for root
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./index.html")
@@ -66,4 +68,3 @@ func SetupRoutes() *mux.Router {
 
 	return r
 }
-

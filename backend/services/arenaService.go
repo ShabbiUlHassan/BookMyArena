@@ -49,6 +49,49 @@ func GetArenaByID(arenaID int) (*models.Arena, error) {
 	return arena, nil
 }
 
+func UpdateArena(arenaID int, req models.CreateArenaRequest) (*models.Arena, error) {
+	// Verify arena exists
+	var exists int
+	err := config.DB.QueryRow("SELECT COUNT(*) FROM Arenas WHERE ArenaId = @p1", arenaID).Scan(&exists)
+	if err != nil || exists == 0 {
+		return nil, errors.New("arena not found")
+	}
+
+	result := config.DB.QueryRow(
+		"UPDATE Arenas SET Name = @p1, SportType = @p2, Capacity = @p3, SlotDuration = @p4, Price = @p5 OUTPUT INSERTED.ArenaId, INSERTED.StadiumId, INSERTED.Name, INSERTED.SportType, INSERTED.Capacity, INSERTED.SlotDuration, INSERTED.Price, INSERTED.CreatedAt WHERE ArenaId = @p6",
+		req.Name, req.SportType, req.Capacity, req.SlotDuration, req.Price, arenaID,
+	)
+
+	arena := &models.Arena{}
+	err = result.Scan(&arena.ArenaID, &arena.StadiumID, &arena.Name, &arena.SportType, &arena.Capacity, &arena.SlotDuration, &arena.Price, &arena.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return arena, nil
+}
+
+func DeleteArena(arenaID int) error {
+	// Check if arena has any bookings
+	var bookingCount int
+	err := config.DB.QueryRow("SELECT COUNT(*) FROM Bookings WHERE ArenaId = @p1 AND Status IN ('Pending', 'Confirmed')", arenaID).Scan(&bookingCount)
+	if err != nil {
+		return err
+	}
+
+	if bookingCount > 0 {
+		return errors.New("cannot delete arena with active bookings")
+	}
+
+	// Delete the arena
+	_, err = config.DB.Exec("DELETE FROM Arenas WHERE ArenaId = @p1", arenaID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func GetArenasByStadium(stadiumID int) ([]models.Arena, error) {
 	rows, err := config.DB.Query(
 		"SELECT ArenaId, StadiumId, Name, SportType, Capacity, SlotDuration, Price, CreatedAt FROM Arenas WHERE StadiumId = @p1 ORDER BY CreatedAt DESC",

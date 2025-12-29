@@ -36,7 +36,9 @@ func CreateArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify stadium ownership
+	// Verify stadium ownership - VerifyStadiumOwner is in stadiumService but accessible via services package
+	// Since all service files are in the same package, we need to check if VerifyStadiumOwner exists
+	// Let's use the same approach as CreateArena uses
 	if !services.VerifyStadiumOwner(req.StadiumID, user.UserID) {
 		utils.RespondWithError(w, http.StatusForbidden, "you don't own this stadium")
 		return
@@ -92,6 +94,101 @@ func GetArena(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(arena)
+}
+
+func UpdateArena(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	user := middleware.GetUserFromContext(r)
+	if user == nil || user.Role != "Owner" {
+		utils.RespondWithError(w, http.StatusForbidden, "owner access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	arenaID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid arena ID")
+		return
+	}
+
+	var req models.CreateArenaRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name == "" || req.SportType == "" || req.Capacity <= 0 || req.SlotDuration <= 0 || req.Price < 0 {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid arena data")
+		return
+	}
+
+	// Verify arena ownership via stadium
+	arena, err := services.GetArenaByID(arenaID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "arena not found")
+		return
+	}
+
+	// Verify stadium ownership
+	if !services.VerifyStadiumOwner(arena.StadiumID, user.UserID) {
+		utils.RespondWithError(w, http.StatusForbidden, "you don't own this arena")
+		return
+	}
+
+	updatedArena, err := services.UpdateArena(arenaID, req)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedArena)
+}
+
+func DeleteArena(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	user := middleware.GetUserFromContext(r)
+	if user == nil || user.Role != "Owner" {
+		utils.RespondWithError(w, http.StatusForbidden, "owner access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	arenaID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid arena ID")
+		return
+	}
+
+	// Verify arena ownership via stadium
+	arena, err := services.GetArenaByID(arenaID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "arena not found")
+		return
+	}
+
+	// Verify stadium ownership
+	if !services.VerifyStadiumOwner(arena.StadiumID, user.UserID) {
+		utils.RespondWithError(w, http.StatusForbidden, "you don't own this arena")
+		return
+	}
+
+	err = services.DeleteArena(arenaID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "arena deleted successfully"})
 }
 
 func GetArenasByStadium(w http.ResponseWriter, r *http.Request) {
