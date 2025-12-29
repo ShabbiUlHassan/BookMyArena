@@ -235,5 +235,18 @@ const API = {
             method: 'GET',
         });
     },
+
+    async getBookingRequestDetails(availabilityId) {
+        return this.request(`/api/booking-requests/details?availabilityId=${availabilityId}`, {
+            method: 'GET',
+        });
+    },
+
+    async createBookingRequest(availabilityId) {
+        return this.request('/api/booking-requests', {
+            method: 'POST',
+            body: JSON.stringify({ availabilityId: availabilityId }),
+        });
+    },
 };
 

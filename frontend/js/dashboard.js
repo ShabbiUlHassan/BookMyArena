@@ -169,6 +169,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Booking confirmation form handler
+    const bookingConfirmationForm = document.getElementById('bookingConfirmationForm');
+    if (bookingConfirmationForm) {
+        bookingConfirmationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const availabilityId = document.getElementById('bookingAvailabilityId').value;
+            
+            if (!availabilityId) {
+                alert('Availability ID is missing');
+                return;
+            }
+            
+            try {
+                await API.createBookingRequest(availabilityId);
+                
+                alert('Booking request created successfully!');
+                
+                // Close modal
+                const modalElement = document.getElementById('bookingConfirmationModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Reload the availability table to reflect the booking
+                await loadUserAvailabilityTable();
+            } catch (error) {
+                alert('Error creating booking request: ' + error.message);
+            }
+        });
+    }
 });
 
 async function loadOwnerDashboard() {
@@ -924,23 +957,32 @@ function handleUserAvailabilityPageSizeChange(pageSize) {
 }
 
 async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, endTime) {
-    // Create datetime strings for booking
-    // Combine date and time to create proper datetime strings
-    const slotStart = new Date(`${date}T${startTime}`).toISOString();
-    const slotEnd = new Date(`${date}T${endTime}`).toISOString();
+    // Store the availability ID for the confirmation modal
+    document.getElementById('bookingAvailabilityId').value = availabilityId;
     
     try {
-        await API.createBooking({
-            arenaId: arenaId,
-            slotStart: slotStart,
-            slotEnd: slotEnd
-        });
+        // Fetch booking details from backend
+        const details = await API.getBookingRequestDetails(availabilityId);
         
-        alert('Booking created successfully!');
-        // Reload the availability table to reflect the booking
-        await loadUserAvailabilityTable();
+        // Populate the confirmation modal with booking details
+        document.getElementById('bookingStadiumName').textContent = details.stadiumName || 'N/A';
+        document.getElementById('bookingArenaName').textContent = details.arenaName || 'N/A';
+        document.getElementById('bookingDate').textContent = details.date || 'N/A';
+        document.getElementById('bookingStartTime').textContent = details.startTime || 'N/A';
+        document.getElementById('bookingEndTime').textContent = details.endTime || 'N/A';
+        document.getElementById('bookingTotalDuration').textContent = (details.totalDuration || 0) + ' minutes';
+        document.getElementById('bookingPrice').textContent = '$' + (details.price ? details.price.toFixed(2) : '0.00');
+        
+        // Show the confirmation modal
+        const modalElement = document.getElementById('bookingConfirmationModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        modal.show();
     } catch (error) {
-        alert('Error creating booking: ' + error.message);
+        alert('Error loading booking details: ' + error.message);
     }
 }
 

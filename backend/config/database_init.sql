@@ -69,6 +69,27 @@ CREATE TABLE Sessions (
 );
 GO
 
+-- BookingRequest Table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BookingRequest' AND xtype='U')
+CREATE TABLE BookingRequest (
+    BookingRequestId INT PRIMARY KEY IDENTITY(1,1),
+    BookieID INT NOT NULL,
+    OwnersId INT NOT NULL,
+    ArenaID INT NOT NULL,
+    Price DECIMAL(10, 2) NOT NULL,
+    RStatus VARCHAR(50) NOT NULL DEFAULT 'Pending',
+    CreatedBy INT NOT NULL,
+    CreatedDate DATETIME NOT NULL DEFAULT GETDATE(),
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    AvailabilityId UNIQUEIDENTIFIER NOT NULL,
+    FOREIGN KEY (BookieID) REFERENCES Users(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (OwnersId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (ArenaID) REFERENCES Arenas(ArenaId) ON DELETE CASCADE,
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserId) ON DELETE NO ACTION,
+    FOREIGN KEY (AvailabilityId) REFERENCES ArenaAvailability(Id) ON DELETE CASCADE
+);
+GO
+
 -- Indexes for better performance
 CREATE INDEX IX_Stadiums_OwnerId ON Stadiums(OwnerId);
 CREATE INDEX IX_Arenas_StadiumId ON Arenas(StadiumId);
@@ -77,5 +98,11 @@ CREATE INDEX IX_Bookings_ArenaId ON Bookings(ArenaId);
 CREATE INDEX IX_Bookings_SlotStart_SlotEnd ON Bookings(SlotStart, SlotEnd);
 CREATE INDEX IX_Sessions_Token ON Sessions(Token);
 CREATE INDEX IX_Sessions_ExpiresAt ON Sessions(ExpiresAt);
+CREATE INDEX IX_BookingRequest_BookieID ON BookingRequest(BookieID);
+CREATE INDEX IX_BookingRequest_OwnersId ON BookingRequest(OwnersId);
+CREATE INDEX IX_BookingRequest_ArenaID ON BookingRequest(ArenaID);
+CREATE INDEX IX_BookingRequest_AvailabilityId ON BookingRequest(AvailabilityId);
+CREATE INDEX IX_BookingRequest_RStatus ON BookingRequest(RStatus);
+CREATE INDEX IX_BookingRequest_IsDeleted ON BookingRequest(IsDeleted);
 GO
 

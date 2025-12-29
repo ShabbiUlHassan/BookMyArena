@@ -201,6 +201,55 @@
         </div>
     </div>
 
+    <!-- Booking Confirmation Modal -->
+    <div class="modal fade" id="bookingConfirmationModal" tabindex="-1" aria-labelledby="bookingConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingConfirmationModalLabel">Confirm Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingConfirmationForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Stadium Name:</label>
+                            <p id="bookingStadiumName" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Arena Name:</label>
+                            <p id="bookingArenaName" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date:</label>
+                            <p id="bookingDate" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Start Time:</label>
+                            <p id="bookingStartTime" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">End Time:</label>
+                            <p id="bookingEndTime" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Total Duration:</label>
+                            <p id="bookingTotalDuration" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Price:</label>
+                            <p id="bookingPrice" class="mb-0"></p>
+                        </div>
+                        <input type="hidden" id="bookingAvailabilityId">
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Confirm Booking</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Set Availability Modal -->
     <div class="modal fade" id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
