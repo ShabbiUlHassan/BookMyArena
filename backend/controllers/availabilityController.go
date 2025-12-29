@@ -14,9 +14,13 @@ import (
 )
 
 func CreateArenaAvailability(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(middleware.UserContextKey).(models.User)
+	if r.Method != http.MethodPost {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
 
-	if user.Role != "Owner" {
+	user := middleware.GetUserFromContext(r)
+	if user == nil || user.Role != "Owner" {
 		utils.RespondWithError(w, http.StatusForbidden, "only owners can create availability")
 		return
 	}
@@ -57,9 +61,13 @@ func GetArenaAvailabilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteArenaAvailability(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(middleware.UserContextKey).(models.User)
+	if r.Method != http.MethodDelete {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
 
-	if user.Role != "Owner" {
+	user := middleware.GetUserFromContext(r)
+	if user == nil || user.Role != "Owner" {
 		utils.RespondWithError(w, http.StatusForbidden, "only owners can delete availability")
 		return
 	}

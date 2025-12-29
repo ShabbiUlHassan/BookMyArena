@@ -90,13 +90,14 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 		}
 
 		// Insert availability record
+		// Note: Id is auto-generated (NEWID()), so we don't include it
 		_, err = tx.Exec(`
 			INSERT INTO ArenaAvailability (
 				Date, StartTime, EndTime, StadiumId, ArenaId, 
-				BookerId, AvailabilityDone, OwnerId, CreatedBy, IsDeleted
+				BookerId, AvailabilityDone, OwnerId, CreatedDate, CreatedBy, IsDeleted
 			) VALUES (
 				@p1, @p2, @p3, @p4, @p5, 
-				NULL, 0, @p6, @p7, 0
+				NULL, 0, @p6, GETDATE(), @p7, 0
 			)
 		`, date.Format("2006-01-02"), slot.StartTime, slot.EndTime, stadiumId, req.ArenaId, ownerId, ownerId)
 		if err != nil {

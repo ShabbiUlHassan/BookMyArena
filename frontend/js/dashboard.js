@@ -100,7 +100,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Validate start time is before end time
                 if (startTime >= endTime) {
-                    alert(`Date Entry ${index + 1}: Start time must be earlier than end time`);
+                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
+                    hasError = true;
+                    return;
+                }
+                
+                // Validate end time is at least 60 minutes after start time
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+                
+                const startTotalMinutes = startHours * 60 + startMinutes;
+                const endTotalMinutes = endHours * 60 + endMinutes;
+                const diffMinutes = endTotalMinutes - startTotalMinutes;
+                
+                if (diffMinutes < 60) {
+                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
                     hasError = true;
                     return;
                 }
@@ -865,6 +879,13 @@ function addAvailabilitySlot() {
     const slotId = `slot-${availabilitySlotCount}`;
     const slotsContainer = document.getElementById('availabilitySlots');
     
+    // Set today's date as default (YYYY-MM-DD format)
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Set minimum date to today (YYYY-MM-DD format)
+    const minDate = todayStr;
+    
     const slotHtml = `
         <div class="availability-slot mb-3 p-3 border rounded" id="${slotId}">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -876,7 +897,7 @@ function addAvailabilitySlot() {
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Date</label>
-                    <input type="date" class="form-control availability-date" required>
+                    <input type="date" class="form-control availability-date" required min="${minDate}" value="${todayStr}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Start Time</label>
@@ -892,12 +913,53 @@ function addAvailabilitySlot() {
     
     slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
     
+    // Add event listeners for time validation
+    const slotElement = document.getElementById(slotId);
+    const startTimeInput = slotElement.querySelector('.availability-start-time');
+    const endTimeInput = slotElement.querySelector('.availability-end-time');
+    
+    // When start time changes, update end time min value
+    startTimeInput.addEventListener('change', function() {
+        updateEndTimeMin(slotElement);
+    });
+    
     // Update add button visibility
     const addBtn = document.getElementById('addDateBtn');
     if (availabilitySlotCount >= 10) {
         addBtn.style.display = 'none';
     } else {
         addBtn.style.display = 'block';
+    }
+}
+
+function updateEndTimeMin(slotElement) {
+    const startTimeInput = slotElement.querySelector('.availability-start-time');
+    const endTimeInput = slotElement.querySelector('.availability-end-time');
+    
+    if (!startTimeInput.value) {
+        endTimeInput.removeAttribute('min');
+        return;
+    }
+    
+    // Parse start time
+    const [startHours, startMinutes] = startTimeInput.value.split(':').map(Number);
+    
+    // Add 60 minutes
+    const startDate = new Date();
+    startDate.setHours(startHours, startMinutes, 0, 0);
+    startDate.setMinutes(startDate.getMinutes() + 60);
+    
+    // Format as HH:MM for the min attribute
+    const minHours = String(startDate.getHours()).padStart(2, '0');
+    const minMinutes = String(startDate.getMinutes()).padStart(2, '0');
+    const minTime = `${minHours}:${minMinutes}`;
+    
+    // Set min attribute on end time input
+    endTimeInput.setAttribute('min', minTime);
+    
+    // If current end time is before the new minimum, clear it
+    if (endTimeInput.value && endTimeInput.value < minTime) {
+        endTimeInput.value = '';
     }
 }
 
