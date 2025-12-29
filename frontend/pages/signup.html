@@ -52,7 +52,7 @@
                 Already have an account? <a href="login.html">Login here</a>
             </p>
 
-            <div id="errorMessage" class="error-message"></div>
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
         </div>
     </main>
 
@@ -63,6 +63,7 @@
             e.preventDefault();
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
 
             const formData = {
                 fullName: document.getElementById('fullName').value,
@@ -79,6 +80,7 @@
                 }
             } catch (error) {
                 errorDiv.textContent = error.message || 'Signup failed. Please try again.';
+                errorDiv.style.display = 'block';
             }
         });
     </script>

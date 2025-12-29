@@ -37,7 +37,7 @@
                 Don't have an account? <a href="signup.html">Sign up here</a>
             </p>
 
-            <div id="errorMessage" class="error-message"></div>
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
         </div>
     </main>
 
@@ -48,6 +48,7 @@
             e.preventDefault();
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
 
             const formData = {
                 email: document.getElementById('email').value,
@@ -70,6 +71,7 @@
                 }
             } catch (error) {
                 errorDiv.textContent = error.message || 'Login failed. Please try again.';
+                errorDiv.style.display = 'block';
             }
         });
     </script>

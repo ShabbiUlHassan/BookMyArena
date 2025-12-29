@@ -220,14 +220,23 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding-bottom: 15px;
+    padding: 15px;
     border-bottom: 2px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.stadium-header:hover {
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
 
 .stadium-header h4 {
     margin: 0;
     color: #2c3e50;
     font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .stadium-header p {
@@ -235,8 +244,24 @@ body {
     color: #666;
 }
 
+.collapse-icon {
+    font-size: 0.8rem;
+    color: #3498db;
+    transition: transform 0.2s;
+    display: inline-block;
+}
+
+.collapse-icon {
+    font-size: 0.8rem;
+    color: #3498db;
+    transition: transform 0.2s;
+    display: inline-block;
+}
+
 .arena-table-container {
     margin-top: 20px;
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
 }
 
 .arena-table-header {

@@ -90,19 +90,20 @@ function displayStadiums(stadiums) {
 
     container.innerHTML = stadiums.map(stadium => `
         <div class="stadium-card" id="stadium-${stadium.stadiumId}">
-            <div class="stadium-header">
+            <div class="stadium-header" onclick="toggleStadiumCard(${stadium.stadiumId})" style="cursor: pointer;">
                 <div>
-                    <h4>${stadium.name}</h4>
+                    <h4>${stadium.name} <span class="collapse-icon" id="collapse-icon-${stadium.stadiumId}">▼</span></h4>
                     <p><strong>Location:</strong> ${stadium.location}</p>
                 </div>
             </div>
             <div class="arena-table-container" id="arena-container-${stadium.stadiumId}">
                 <div class="arena-table-header">
                     <div class="arena-search">
-                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search arenas..." 
-                               onkeyup="handleArenaSearch(${stadium.stadiumId}, event)">
+                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search all columns..." 
+                               onkeyup="handleArenaSearch(${stadium.stadiumId}, event)"
+                               oninput="handleArenaSearchInput(${stadium.stadiumId}, event)">
                     </div>
-                    <button class="btn btn-primary" onclick="showAddArenaModal(${stadium.stadiumId})">Add Arena</button>
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); showAddArenaModal(${stadium.stadiumId})">Add Arena</button>
                 </div>
                 <div id="arena-table-${stadium.stadiumId}" class="table-container"></div>
                 <div id="arena-pagination-${stadium.stadiumId}" class="arena-table-footer"></div>
@@ -302,12 +303,28 @@ function handlePageSizeChange(stadiumId, pageSize) {
     loadArenasForStadium(stadiumId, 1, parseInt(pageSize), state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
 }
 
+function toggleStadiumCard(stadiumId) {
+    const arenaContainer = document.getElementById(`arena-container-${stadiumId}`);
+    const collapseIcon = document.getElementById(`collapse-icon-${stadiumId}`);
+    
+    if (!arenaContainer) return;
+    
+    if (arenaContainer.style.display === 'none') {
+        arenaContainer.style.display = 'block';
+        if (collapseIcon) collapseIcon.textContent = '▼';
+    } else {
+        arenaContainer.style.display = 'none';
+        if (collapseIcon) collapseIcon.textContent = '▶';
+    }
+}
+
 // Make functions globally accessible
 window.handleArenaSearch = handleArenaSearch;
 window.handleArenaSearchInput = handleArenaSearchInput;
 window.handleArenaSort = handleArenaSort;
 window.handlePageChange = handlePageChange;
 window.handlePageSizeChange = handlePageSizeChange;
+window.toggleStadiumCard = toggleStadiumCard;
 
 function showAddStadiumModal() {
     document.getElementById('addStadiumModal').style.display = 'block';

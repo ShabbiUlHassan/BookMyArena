@@ -61,9 +61,9 @@ func SetupRoutes() *mux.Router {
 	fileServer := http.FileServer(http.Dir("./frontend/"))
 	r.PathPrefix("/frontend/").Handler(http.StripPrefix("/frontend/", fileServer))
 
-	// Serve index.html for root
+	// Redirect root to login page
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./index.html")
+		http.Redirect(w, r, "/frontend/pages/login.html", http.StatusSeeOther)
 	})
 
 	return r
