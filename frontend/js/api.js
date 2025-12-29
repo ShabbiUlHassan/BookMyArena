@@ -111,8 +111,17 @@ const API = {
         });
     },
 
-    async getArenasByStadium(stadiumId) {
-        return this.request(`/api/stadiums/${stadiumId}/arenas`, {
+    async getArenasByStadium(stadiumId, params = {}) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+        
+        const queryString = queryParams.toString();
+        const url = `/api/stadiums/${stadiumId}/arenas${queryString ? '?' + queryString : ''}`;
+        return this.request(url, {
             method: 'GET',
         });
     },

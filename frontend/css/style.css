@@ -192,6 +192,123 @@ body {
     margin-top: 20px;
 }
 
+/* Stadiums Container */
+.stadiums-container {
+    margin-top: 20px;
+}
+
+.stadium-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    padding: 20px;
+    width: 100%;
+}
+
+.stadium-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+.stadium-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.stadium-header p {
+    margin: 5px 0 0 0;
+    color: #666;
+}
+
+.arena-table-container {
+    margin-top: 20px;
+}
+
+.arena-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.arena-search {
+    flex: 1;
+    max-width: 300px;
+}
+
+.arena-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.arena-table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-controls button {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+    background: #f5f5f5;
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.page-size-select {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    align-items: center;
+    gap: 5px;
+}
+
+.sortable-header:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+    color: #999;
+}
+
 .card {
     background: white;
     padding: 20px;

@@ -52,7 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             await API.createArena(arenaData);
             closeAddArenaModal();
-            loadOwnerDashboard();
+            // Reload arenas for the specific stadium
+            const state = stadiumArenaState[stadiumId] || {};
+            loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
         } catch (error) {
             alert('Error: ' + error.message);
         }
@@ -79,55 +81,131 @@ function displayStadiums(stadiums) {
     }
 
     container.innerHTML = stadiums.map(stadium => `
-        <div class="card">
-            <h4>${stadium.name}</h4>
-            <p><strong>Location:</strong> ${stadium.location}</p>
-            <button class="btn btn-secondary" onclick="loadArenas(${stadium.stadiumId})">View Arenas</button>
-            <button class="btn btn-primary" onclick="showAddArenaModal(${stadium.stadiumId})">Add Arena</button>
+        <div class="stadium-card" id="stadium-${stadium.stadiumId}">
+            <div class="stadium-header">
+                <div>
+                    <h4>${stadium.name}</h4>
+                    <p><strong>Location:</strong> ${stadium.location}</p>
+                </div>
+            </div>
+            <div class="arena-table-container" id="arena-container-${stadium.stadiumId}">
+                <div class="arena-table-header">
+                    <div class="arena-search">
+                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search arenas..." 
+                               onkeyup="handleArenaSearch(${stadium.stadiumId}, event)">
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddArenaModal(${stadium.stadiumId})">Add Arena</button>
+                </div>
+                <div id="arena-table-${stadium.stadiumId}" class="table-container"></div>
+                <div id="arena-pagination-${stadium.stadiumId}" class="arena-table-footer"></div>
+            </div>
         </div>
     `).join('');
+
+    // Load arenas for each stadium
+    stadiums.forEach(stadium => {
+        loadArenasForStadium(stadium.stadiumId);
+    });
 }
 
-async function loadArenas(stadiumId) {
+// Stadium arena state for pagination, search, and sorting
+const stadiumArenaState = {};
+
+async function loadArenasForStadium(stadiumId, pageNumber = 1, pageSize = 10, searchText = '', sortColumn = 'CreatedAt', sortDirection = 'DESC') {
+    const tableContainer = document.getElementById(`arena-table-${stadiumId}`);
+    if (!tableContainer) {
+        console.error(`Table container not found for stadium ${stadiumId}`);
+        return;
+    }
+
+    tableContainer.innerHTML = '<p>Loading arenas...</p>';
+
     try {
-        const arenas = await API.getArenasByStadium(stadiumId);
-        displayArenasInModal(arenas);
+        const result = await API.getArenasByStadium(stadiumId, {
+            searchText,
+            sortColumn,
+            sortDirection,
+            pageNumber,
+            pageSize
+        });
+
+        console.log(`Arenas loaded for stadium ${stadiumId}:`, result);
+
+        // Store state
+        if (!stadiumArenaState[stadiumId]) {
+            stadiumArenaState[stadiumId] = {};
+        }
+        stadiumArenaState[stadiumId] = {
+            pageNumber,
+            pageSize,
+            searchText,
+            sortColumn,
+            sortDirection,
+            totalCount: result.totalCount || 0,
+            totalPages: result.totalPages || 0
+        };
+
+        displayArenasTable(stadiumId, result);
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Error loading arenas:', error);
+        tableContainer.innerHTML = `<p class="error-message">Error loading arenas: ${error.message}</p>`;
     }
 }
 
-function displayArenasInModal(arenas) {
-    const container = document.getElementById('arenasList');
-    if (!container) {
-        console.error('arenasList container not found!');
+function displayArenasTable(stadiumId, result) {
+    const tableContainer = document.getElementById(`arena-table-${stadiumId}`);
+    const paginationContainer = document.getElementById(`arena-pagination-${stadiumId}`);
+    
+    if (!tableContainer) {
+        console.error(`Table container not found for stadium ${stadiumId}`);
         return;
     }
 
-    if (!arenas || !Array.isArray(arenas) || arenas.length === 0) {
-        container.innerHTML = '<p>No arenas found in this stadium.</p>';
-        document.getElementById('viewArenasModal').style.display = 'block';
+    console.log(`Displaying arenas table for stadium ${stadiumId}:`, result);
+
+    // If no arenas, don't render the table
+    if (!result || !result.arenas || result.arenas.length === 0) {
+        tableContainer.innerHTML = '';
+        if (paginationContainer) paginationContainer.innerHTML = '';
         return;
     }
+
+    const state = stadiumArenaState[stadiumId];
+    const sortColumn = state ? state.sortColumn : 'CreatedAt';
+    const sortDirection = state ? state.sortDirection : 'DESC';
+
+    // Generate sort icon
+    const getSortIcon = (col) => {
+        if (col !== sortColumn) return '<span class="sort-icon">↕</span>';
+        return sortDirection === 'ASC' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+    };
+
+    // Generate sort handler
+    const getSortHandler = (col) => {
+        const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
+        return `handleArenaSort(${stadiumId}, '${col}', '${newDirection}')`;
+    };
 
     const table = `
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Arena Name</th>
-                    <th>Sport Type</th>
-                    <th>Capacity</th>
-                    <th>Slot Duration</th>
-                    <th>Price per Slot</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Name')}">Arena Name ${getSortIcon('Name')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('SportType')}">Sport Type ${getSortIcon('SportType')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Capacity')}">Capacity ${getSortIcon('Capacity')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('SlotDuration')}">Slot Duration ${getSortIcon('SlotDuration')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('Price')}">Price per Slot ${getSortIcon('Price')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('CreatedAt')}">Created At ${getSortIcon('CreatedAt')}</th>
                 </tr>
             </thead>
             <tbody>
-                ${arenas.map(arena => {
+                ${result.arenas.map(arena => {
                     const arenaName = arena.name || 'Unnamed Arena';
                     const sportType = arena.sportType || 'N/A';
                     const capacity = arena.capacity || 0;
                     const slotDuration = arena.slotDuration || 0;
                     const price = arena.price ? arena.price.toFixed(2) : '0.00';
+                    const createdAt = arena.createdAt ? new Date(arena.createdAt).toLocaleDateString() : 'N/A';
                     
                     return `
                     <tr>
@@ -136,22 +214,83 @@ function displayArenasInModal(arenas) {
                         <td>${capacity} players</td>
                         <td>${slotDuration} minutes</td>
                         <td>$${price}</td>
+                        <td>${createdAt}</td>
                     </tr>
                 `;
                 }).join('')}
             </tbody>
         </table>
     `;
-    container.innerHTML = table;
-    document.getElementById('viewArenasModal').style.display = 'block';
+    tableContainer.innerHTML = table;
+
+    // Display pagination
+    if (paginationContainer && result.totalPages > 0) {
+        const state = stadiumArenaState[stadiumId];
+        paginationContainer.innerHTML = `
+            <div class="pagination-info">
+                Showing ${((state.pageNumber - 1) * state.pageSize) + 1} to ${Math.min(state.pageNumber * state.pageSize, state.totalCount)} of ${state.totalCount} arenas
+                <select class="page-size-select" onchange="handlePageSizeChange(${stadiumId}, this.value)">
+                    <option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10 per page</option>
+                    <option value="25" ${state.pageSize === 25 ? 'selected' : ''}>25 per page</option>
+                    <option value="50" ${state.pageSize === 50 ? 'selected' : ''}>50 per page</option>
+                    <option value="100" ${state.pageSize === 100 ? 'selected' : ''}>100 per page</option>
+                </select>
+            </div>
+            <div class="pagination-controls">
+                <button onclick="handlePageChange(${stadiumId}, 1)" ${state.pageNumber === 1 ? 'disabled' : ''}>First</button>
+                <button onclick="handlePageChange(${stadiumId}, ${state.pageNumber - 1})" ${state.pageNumber === 1 ? 'disabled' : ''}>Previous</button>
+                <span>Page ${state.pageNumber} of ${state.totalPages}</span>
+                <button onclick="handlePageChange(${stadiumId}, ${state.pageNumber + 1})" ${state.pageNumber >= state.totalPages ? 'disabled' : ''}>Next</button>
+                <button onclick="handlePageChange(${stadiumId}, ${state.totalPages})" ${state.pageNumber >= state.totalPages ? 'disabled' : ''}>Last</button>
+            </div>
+        `;
+    } else if (paginationContainer) {
+        paginationContainer.innerHTML = '';
+    }
 }
 
-function closeViewArenasModal() {
-    document.getElementById('viewArenasModal').style.display = 'none';
+function handleArenaSearch(stadiumId, event) {
+    if (event.key === 'Enter') {
+        const searchInput = document.getElementById(`arena-search-${stadiumId}`);
+        const searchText = searchInput ? searchInput.value : '';
+        const state = stadiumArenaState[stadiumId] || {};
+        loadArenasForStadium(stadiumId, 1, state.pageSize || 10, searchText, state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
+    }
 }
 
-// Make loadArenas globally accessible
-window.loadArenas = loadArenas;
+// Debounced search for input events
+let searchTimeout = {};
+function handleArenaSearchInput(stadiumId, event) {
+    clearTimeout(searchTimeout[stadiumId]);
+    searchTimeout[stadiumId] = setTimeout(() => {
+        const searchInput = document.getElementById(`arena-search-${stadiumId}`);
+        const searchText = searchInput ? searchInput.value : '';
+        const state = stadiumArenaState[stadiumId] || {};
+        loadArenasForStadium(stadiumId, 1, state.pageSize || 10, searchText, state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
+    }, 500); // 500ms delay
+}
+
+function handleArenaSort(stadiumId, sortColumn, sortDirection) {
+    const state = stadiumArenaState[stadiumId] || {};
+    loadArenasForStadium(stadiumId, 1, state.pageSize || 10, state.searchText || '', sortColumn, sortDirection);
+}
+
+function handlePageChange(stadiumId, pageNumber) {
+    const state = stadiumArenaState[stadiumId] || {};
+    loadArenasForStadium(stadiumId, pageNumber, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
+}
+
+function handlePageSizeChange(stadiumId, pageSize) {
+    const state = stadiumArenaState[stadiumId] || {};
+    loadArenasForStadium(stadiumId, 1, parseInt(pageSize), state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
+}
+
+// Make functions globally accessible
+window.handleArenaSearch = handleArenaSearch;
+window.handleArenaSearchInput = handleArenaSearchInput;
+window.handleArenaSort = handleArenaSort;
+window.handlePageChange = handlePageChange;
+window.handlePageSizeChange = handlePageSizeChange;
 
 function showAddStadiumModal() {
     document.getElementById('addStadiumModal').style.display = 'block';
@@ -428,21 +567,16 @@ window.showAddStadiumModal = showAddStadiumModal;
 window.closeAddStadiumModal = closeAddStadiumModal;
 window.showAddArenaModal = showAddArenaModal;
 window.closeAddArenaModal = closeAddArenaModal;
-window.closeViewArenasModal = closeViewArenasModal;
 
 // Close modals when clicking outside
 window.onclick = function(event) {
     const stadiumModal = document.getElementById('addStadiumModal');
     const arenaModal = document.getElementById('addArenaModal');
-    const viewArenasModal = document.getElementById('viewArenasModal');
     if (event.target == stadiumModal) {
         closeAddStadiumModal();
     }
     if (event.target == arenaModal) {
         closeAddArenaModal();
-    }
-    if (event.target == viewArenasModal) {
-        closeViewArenasModal();
     }
 }
 

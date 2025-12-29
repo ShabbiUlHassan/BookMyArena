@@ -4,6 +4,7 @@ import (
 	"BookMyArena/backend/config"
 	"BookMyArena/backend/models"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -69,6 +70,106 @@ func GetArenasByStadium(stadiumID int) ([]models.Arena, error) {
 	}
 
 	return arenas, nil
+}
+
+func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.PaginatedArenas, error) {
+	// Validate and set sort column (whitelist to prevent SQL injection)
+	sortColumn := params.SortColumn
+	validSortColumns := map[string]bool{
+		"Name": true, "SportType": true, "Capacity": true,
+		"SlotDuration": true, "Price": true, "CreatedAt": true,
+	}
+	if !validSortColumns[sortColumn] {
+		sortColumn = "CreatedAt"
+	}
+
+	// Validate sort direction
+	sortDirection := params.SortDirection
+	if sortDirection != "ASC" && sortDirection != "DESC" {
+		sortDirection = "DESC"
+	}
+
+	// Validate pagination parameters
+	if params.PageNumber < 1 {
+		params.PageNumber = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 10
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Calculate pagination first
+	offset := (params.PageNumber - 1) * params.PageSize
+
+	// Build WHERE clause for count and main query
+	var countQuery string
+	var query string
+	var countArgs []interface{}
+	var queryArgs []interface{}
+
+	if params.SearchText != "" {
+		searchPattern := "%" + params.SearchText + "%"
+		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1 AND (Name LIKE @p2 OR SportType LIKE @p2)"
+		countArgs = []interface{}{params.StadiumID, searchPattern}
+
+		query = fmt.Sprintf("SELECT ArenaId, StadiumId, Name, SportType, Capacity, SlotDuration, Price, CreatedAt FROM Arenas WHERE StadiumId = @p1 AND (Name LIKE @p2 OR SportType LIKE @p2) ORDER BY %s %s OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY", sortColumn, sortDirection)
+		queryArgs = []interface{}{params.StadiumID, searchPattern, offset, params.PageSize}
+	} else {
+		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1"
+		countArgs = []interface{}{params.StadiumID}
+
+		query = fmt.Sprintf("SELECT ArenaId, StadiumId, Name, SportType, Capacity, SlotDuration, Price, CreatedAt FROM Arenas WHERE StadiumId = @p1 ORDER BY %s %s OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY", sortColumn, sortDirection)
+		queryArgs = []interface{}{params.StadiumID, offset, params.PageSize}
+	}
+
+	// Get total count
+	var totalCount int
+	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
+	if params.PageNumber > totalPages && totalPages > 0 {
+		params.PageNumber = totalPages
+		// Recalculate offset and query args if page number was adjusted
+		offset = (params.PageNumber - 1) * params.PageSize
+		if params.SearchText != "" {
+			queryArgs[2] = offset
+		} else {
+			queryArgs[1] = offset
+		}
+	}
+
+	// Execute main query
+	rows, err := config.DB.Query(query, queryArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var arenas []models.Arena
+	for rows.Next() {
+		var arena models.Arena
+		err := rows.Scan(&arena.ArenaID, &arena.StadiumID, &arena.Name, &arena.SportType, &arena.Capacity, &arena.SlotDuration, &arena.Price, &arena.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		arenas = append(arenas, arena)
+	}
+
+	result := &models.PaginatedArenas{
+		Arenas:     arenas,
+		TotalCount: totalCount,
+		PageNumber: params.PageNumber,
+		PageSize:   params.PageSize,
+		TotalPages: totalPages,
+	}
+
+	return result, nil
 }
 
 func GetAllArenas() ([]models.Arena, error) {

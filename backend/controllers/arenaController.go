@@ -107,14 +107,42 @@ func GetArenasByStadium(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	arenas, err := services.GetArenasByStadium(stadiumID)
+	// Get query parameters for pagination, search, and sorting
+	searchText := r.URL.Query().Get("searchText")
+	sortColumn := r.URL.Query().Get("sortColumn")
+	sortDirection := r.URL.Query().Get("sortDirection")
+
+	pageNumber := 1
+	if pn := r.URL.Query().Get("pageNumber"); pn != "" {
+		if pnInt, err := strconv.Atoi(pn); err == nil && pnInt > 0 {
+			pageNumber = pnInt
+		}
+	}
+
+	pageSize := 10
+	if ps := r.URL.Query().Get("pageSize"); ps != "" {
+		if psInt, err := strconv.Atoi(ps); err == nil && psInt > 0 {
+			pageSize = psInt
+		}
+	}
+
+	params := models.ArenaSearchParams{
+		StadiumID:     stadiumID,
+		SearchText:    searchText,
+		SortColumn:    sortColumn,
+		SortDirection: sortDirection,
+		PageNumber:    pageNumber,
+		PageSize:      pageSize,
+	}
+
+	result, err := services.GetArenasByStadiumPaginated(params)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(arenas)
+	json.NewEncoder(w).Encode(result)
 }
 
 func SearchArenas(w http.ResponseWriter, r *http.Request) {
