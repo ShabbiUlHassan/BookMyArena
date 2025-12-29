@@ -18,35 +18,75 @@
         </div>
     </nav>
 
-    <main class="container">
-        <div id="ownerDashboard" style="display: none;">
-            <h2>Owner Dashboard</h2>
-            
-            <section class="section">
-                <h3>My Stadiums</h3>
-                <button class="btn btn-primary" onclick="showAddStadiumModal()">Add Stadium</button>
-                <div id="stadiumsList" class="stadiums-container"></div>
-            </section>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html" class="nav-link active">
+                        <span class="nav-icon">🏠</span> Home
+                    </a></li>
+                    <li><a href="booking.html" class="nav-link">
+                        <span class="nav-icon">📅</span> Booking
+                    </a></li>
+                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
+                        <span class="nav-icon">📋</span> Requests
+                    </a></li>
+                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
+                        <span class="nav-icon">💳</span> Payments
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
 
-            <section class="section">
-                <h3>My Bookings</h3>
-                <div id="ownerBookings" class="table-container"></div>
-            </section>
-        </div>
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <div id="ownerDashboard" style="display: none;">
+                <!-- Home Section -->
+                <div id="homeSection" class="dashboard-section">
+                    <h2>Owner Dashboard</h2>
+                    
+                    <section class="section">
+                        <h3>My Stadiums</h3>
+                        <button class="btn btn-primary" onclick="showAddStadiumModal()">Add Stadium</button>
+                        <div id="stadiumsList" class="stadiums-container"></div>
+                    </section>
+                </div>
 
-        <div id="userDashboard" style="display: none;">
-            <section class="section">
-                <h2>Available Arenas</h2>
-                <p>Browse and book available arenas from all owners.</p>
-                <div id="availableArenas" class="table-container"></div>
-            </section>
-            
-            <section class="section">
-                <h2>My Bookings</h2>
-                <div id="userBookings" class="table-container"></div>
-            </section>
-        </div>
-    </main>
+                <!-- Booking Section -->
+                <div id="bookingSection" class="dashboard-section" style="display: none;">
+                    <h2>My Bookings</h2>
+                    <section class="section">
+                        <div id="ownerBookings" class="table-container"></div>
+                    </section>
+                </div>
+
+                <!-- Requests Section -->
+                <div id="requestsSection" class="dashboard-section" style="display: none;">
+                    <h2>Requests</h2>
+                    <section class="section">
+                        <div id="ownerRequests" class="table-container"></div>
+                    </section>
+                </div>
+
+                <!-- Payments Section -->
+                <div id="paymentsSection" class="dashboard-section" style="display: none;">
+                    <h2>Payments</h2>
+                    <section class="section">
+                        <p>Payments functionality coming soon.</p>
+                    </section>
+                </div>
+            </div>
+
+            <div id="userDashboard" style="display: none;">
+                <section class="section">
+                    <h2>Available Arenas</h2>
+                    <p>Browse and book available arenas from all owners.</p>
+                    <div id="availableArenas" class="table-container"></div>
+                </section>
+            </div>
+        </main>
+    </div>
 
     <!-- Add Stadium Modal -->
     <div id="addStadiumModal" class="modal">
@@ -123,6 +163,7 @@
 
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
     <script src="../js/dashboard.js"></script>
 </body>
 </html>

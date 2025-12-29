@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - BookMyArena</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">BookMyArena</h1>
+            <div class="nav-links">
+                <span id="userName"></span>
+                <a href="search.html">Search Arenas</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html" class="nav-link">
+                        <span class="nav-icon">🏠</span> Home
+                    </a></li>
+                    <li><a href="booking.html" class="nav-link">
+                        <span class="nav-icon">📅</span> Booking
+                    </a></li>
+                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
+                        <span class="nav-icon">📋</span> Requests
+                    </a></li>
+                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link active">
+                        <span class="nav-icon">💳</span> Payments
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <h2>Payments</h2>
+            <section class="section">
+                <p>Payments functionality coming soon.</p>
+            </section>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = sessionStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            if (user.role !== 'Owner') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
+

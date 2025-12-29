@@ -14,11 +14,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (role === 'owner' || user.role === 'Owner') {
         document.getElementById('ownerDashboard').style.display = 'block';
+        document.getElementById('requestsNavItem').style.display = 'block';
+        document.getElementById('paymentsNavItem').style.display = 'block';
         loadOwnerDashboard();
     } else {
         document.getElementById('userDashboard').style.display = 'block';
         loadAvailableArenas();
-        loadUserBookings();
     }
 
     // Add stadium form handler
@@ -73,9 +74,6 @@ async function loadOwnerDashboard() {
     try {
         const stadiums = await API.getStadiums();
         displayStadiums(stadiums);
-
-        const bookings = await API.getBookings();
-        displayOwnerBookings(bookings);
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
@@ -398,10 +396,100 @@ function displayOwnerBookings(bookings) {
 async function updateBookingStatus(bookingId, status) {
     try {
         await API.updateBookingStatus(bookingId, status);
-        loadOwnerDashboard();
+        // Reload page if on booking or requests page
+        const currentPage = window.location.pathname;
+        if (currentPage.includes('booking.html') || currentPage.includes('requests.html')) {
+            window.location.reload();
+        } else {
+            // If on dashboard, reload bookings if visible
+            const bookingSection = document.getElementById('bookingSection');
+            if (bookingSection && bookingSection.style.display !== 'none') {
+                loadOwnerBookings();
+            }
+        }
     } catch (error) {
         alert('Error: ' + error.message);
     }
+}
+
+async function loadOwnerBookings() {
+    try {
+        const bookings = await API.getBookings();
+        displayOwnerBookings(bookings);
+    } catch (error) {
+        console.error('Error loading bookings:', error);
+        const container = document.getElementById('ownerBookings');
+        if (container) {
+            container.innerHTML = '<p class="error-message">Error loading bookings: ' + error.message + '</p>';
+        }
+    }
+}
+
+async function loadOwnerRequests() {
+    const container = document.getElementById('ownerRequests');
+    if (!container) {
+        console.error('ownerRequests container not found!');
+        return;
+    }
+    
+    container.innerHTML = '<p>Loading requests...</p>';
+    
+    try {
+        // Get all bookings and filter for pending ones (requests)
+        const bookings = await API.getBookings();
+        // Filter for pending bookings (these are the requests)
+        const pendingBookings = bookings.filter(booking => booking.status === 'Pending');
+        displayOwnerRequests(pendingBookings);
+    } catch (error) {
+        console.error('Error loading requests:', error);
+        container.innerHTML = '<p class="error-message">Error loading requests: ' + error.message + '</p>';
+    }
+}
+
+function displayOwnerRequests(requests) {
+    const container = document.getElementById('ownerRequests');
+    if (!container) {
+        console.error('ownerRequests container not found!');
+        return;
+    }
+    
+    if (!requests || !Array.isArray(requests) || requests.length === 0) {
+        container.innerHTML = '<p>No pending requests at the moment.</p>';
+        return;
+    }
+
+    const table = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Arena</th>
+                    <th>Stadium</th>
+                    <th>Customer</th>
+                    <th>Date & Time</th>
+                    <th>Price</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${requests.map(request => `
+                    <tr>
+                        <td>${request.bookingId}</td>
+                        <td>${request.arenaName || 'N/A'}</td>
+                        <td>${request.stadiumName || 'N/A'}</td>
+                        <td>User #${request.userId}</td>
+                        <td>${new Date(request.slotStart).toLocaleString()} - ${new Date(request.slotEnd).toLocaleString()}</td>
+                        <td>$${request.price ? request.price.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${request.bookingId}, 'Confirmed')">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${request.bookingId}, 'Cancelled')">Reject</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = table;
 }
 
 async function loadUserBookings() {
@@ -646,6 +734,59 @@ async function deleteArena(arenaId, stadiumId) {
         loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
     } catch (error) {
         alert('Error deleting arena: ' + error.message);
+    }
+}
+
+function showSection(section) {
+    const userStr = sessionStorage.getItem('user');
+    if (!userStr) return;
+    
+    const user = JSON.parse(userStr);
+    const role = user.role === 'Owner' ? 'owner' : 'user';
+    
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Add active class to clicked link
+    const activeLink = document.querySelector(`.nav-link[data-section="${section}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+    
+    if (role === 'owner') {
+        // Hide all owner sections
+        document.getElementById('homeSection').style.display = 'none';
+        document.getElementById('bookingSection').style.display = 'none';
+        document.getElementById('requestsSection').style.display = 'none';
+        document.getElementById('paymentsSection').style.display = 'none';
+        
+        // Show selected section
+        if (section === 'home') {
+            document.getElementById('homeSection').style.display = 'block';
+        } else if (section === 'booking') {
+            document.getElementById('bookingSection').style.display = 'block';
+            loadOwnerBookings();
+        } else if (section === 'requests') {
+            document.getElementById('requestsSection').style.display = 'block';
+            loadOwnerRequests();
+        } else if (section === 'payments') {
+            document.getElementById('paymentsSection').style.display = 'block';
+        }
+    } else {
+        // Hide all user sections
+        document.getElementById('userHomeSection').style.display = 'none';
+        document.getElementById('userBookingSection').style.display = 'none';
+        
+        // Show selected section
+        if (section === 'home') {
+            document.getElementById('userHomeSection').style.display = 'block';
+            loadAvailableArenas();
+        } else if (section === 'booking') {
+            document.getElementById('userBookingSection').style.display = 'block';
+            loadUserBookings();
+        }
     }
 }
 

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookings - BookMyArena</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">BookMyArena</h1>
+            <div class="nav-links">
+                <span id="userName"></span>
+                <a href="search.html">Search Arenas</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html" class="nav-link">
+                        <span class="nav-icon">🏠</span> Home
+                    </a></li>
+                    <li><a href="booking.html" class="nav-link active">
+                        <span class="nav-icon">📅</span> Booking
+                    </a></li>
+                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
+                        <span class="nav-icon">📋</span> Requests
+                    </a></li>
+                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
+                        <span class="nav-icon">💳</span> Payments
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <div id="ownerBookings" style="display: none;">
+                <h2>My Bookings</h2>
+                <div id="ownerBookingsTable" class="table-container"></div>
+            </div>
+
+            <div id="userBookings" style="display: none;">
+                <h2>My Bookings</h2>
+                <div id="userBookingsTable" class="table-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = sessionStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            const role = user.role === 'Owner' ? 'owner' : 'user';
+
+            // Show/hide owner-only navigation items
+            if (role === 'owner') {
+                document.getElementById('requestsNavItem').style.display = 'block';
+                document.getElementById('paymentsNavItem').style.display = 'block';
+                document.getElementById('ownerBookings').style.display = 'block';
+                await loadOwnerBookings();
+            } else {
+                document.getElementById('userBookings').style.display = 'block';
+                await loadUserBookings();
+            }
+
+            async function loadOwnerBookings() {
+                const container = document.getElementById('ownerBookingsTable');
+                container.innerHTML = '<p>Loading bookings...</p>';
+                
+                try {
+                    const bookings = await API.getBookings();
+                    displayOwnerBookings(bookings);
+                } catch (error) {
+                    console.error('Error loading bookings:', error);
+                    container.innerHTML = '<p class="error-message">Error loading bookings: ' + error.message + '</p>';
+                }
+            }
+
+            function displayOwnerBookings(bookings) {
+                const container = document.getElementById('ownerBookingsTable');
+                if (!bookings || bookings.length === 0) {
+                    container.innerHTML = '<p>No bookings yet.</p>';
+                    return;
+                }
+
+                const table = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Arena</th>
+                                <th>Stadium</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bookings.map(booking => `
+                                <tr>
+                                    <td>${booking.bookingId}</td>
+                                    <td>${booking.arenaName}</td>
+                                    <td>${booking.stadiumName}</td>
+                                    <td>${new Date(booking.slotStart).toLocaleString()} - ${new Date(booking.slotEnd).toLocaleString()}</td>
+                                    <td>${booking.status}</td>
+                                    <td>
+                                        ${booking.status === 'Pending' ? `
+                                            <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${booking.bookingId}, 'Confirmed')">Confirm</button>
+                                            <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${booking.bookingId}, 'Cancelled')">Reject</button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            }
+
+            async function loadUserBookings() {
+                const container = document.getElementById('userBookingsTable');
+                container.innerHTML = '<p>Loading bookings...</p>';
+                
+                try {
+                    const bookings = await API.getBookings();
+                    displayUserBookings(bookings);
+                } catch (error) {
+                    console.error('Error loading bookings:', error);
+                    container.innerHTML = `<p class="error-message">Error loading bookings: ${error.message || 'Please try again.'}</p>`;
+                }
+            }
+
+            function displayUserBookings(bookings) {
+                const container = document.getElementById('userBookingsTable');
+                
+                if (!bookings || !Array.isArray(bookings) || bookings.length === 0) {
+                    container.innerHTML = '<p>No bookings yet. <a href="search.html" class="btn btn-primary">Search & Book Arenas</a></p>';
+                    return;
+                }
+
+                const table = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Arena</th>
+                                <th>Stadium</th>
+                                <th>Location</th>
+                                <th>Date & Time</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bookings.map(booking => {
+                                const arenaName = booking.arenaName || 'N/A';
+                                const stadiumName = booking.stadiumName || 'N/A';
+                                const location = booking.location || 'N/A';
+                                const slotStart = booking.slotStart ? new Date(booking.slotStart).toLocaleString() : 'N/A';
+                                const slotEnd = booking.slotEnd ? new Date(booking.slotEnd).toLocaleString() : 'N/A';
+                                const price = booking.price ? `$${booking.price.toFixed(2)}` : '$0.00';
+                                const status = booking.status || 'Unknown';
+                                const bookingId = booking.bookingId || 0;
+                                
+                                return `
+                                <tr>
+                                    <td>${arenaName}</td>
+                                    <td>${stadiumName}</td>
+                                    <td>${location}</td>
+                                    <td>${slotStart} - ${slotEnd}</td>
+                                    <td>${price}</td>
+                                    <td>${status}</td>
+                                    <td>
+                                        ${status !== 'Cancelled' ? `
+                                            <button class="btn btn-sm btn-danger" onclick="cancelBooking(${bookingId})">Cancel</button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            }
+
+            async function updateBookingStatus(bookingId, status) {
+                try {
+                    await API.updateBookingStatus(bookingId, status);
+                    await loadOwnerBookings();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            async function cancelBooking(bookingId) {
+                if (!confirm('Are you sure you want to cancel this booking?')) {
+                    return;
+                }
+                try {
+                    await API.cancelBooking(bookingId);
+                    await loadUserBookings();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            window.updateBookingStatus = updateBookingStatus;
+            window.cancelBooking = cancelBooking;
+        });
+    </script>
+</body>
+</html>

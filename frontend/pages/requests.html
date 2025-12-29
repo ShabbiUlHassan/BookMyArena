@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requests - BookMyArena</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">BookMyArena</h1>
+            <div class="nav-links">
+                <span id="userName"></span>
+                <a href="search.html">Search Arenas</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html" class="nav-link">
+                        <span class="nav-icon">🏠</span> Home
+                    </a></li>
+                    <li><a href="booking.html" class="nav-link">
+                        <span class="nav-icon">📅</span> Booking
+                    </a></li>
+                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link active">
+                        <span class="nav-icon">📋</span> Requests
+                    </a></li>
+                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
+                        <span class="nav-icon">💳</span> Payments
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <h2>Requests</h2>
+            <p>Pending booking requests that need your approval.</p>
+            <div id="requestsTable" class="table-container"></div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = sessionStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            if (user.role !== 'Owner') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            await loadRequests();
+
+            async function loadRequests() {
+                const container = document.getElementById('requestsTable');
+                container.innerHTML = '<p>Loading requests...</p>';
+                
+                try {
+                    const bookings = await API.getBookings();
+                    const pendingBookings = bookings.filter(booking => booking.status === 'Pending');
+                    displayRequests(pendingBookings);
+                } catch (error) {
+                    console.error('Error loading requests:', error);
+                    container.innerHTML = '<p class="error-message">Error loading requests: ' + error.message + '</p>';
+                }
+            }
+
+            function displayRequests(requests) {
+                const container = document.getElementById('requestsTable');
+                
+                if (!requests || !Array.isArray(requests) || requests.length === 0) {
+                    container.innerHTML = '<p>No pending requests at the moment.</p>';
+                    return;
+                }
+
+                const table = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Arena</th>
+                                <th>Stadium</th>
+                                <th>Customer</th>
+                                <th>Date & Time</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${requests.map(request => `
+                                <tr>
+                                    <td>${request.bookingId}</td>
+                                    <td>${request.arenaName || 'N/A'}</td>
+                                    <td>${request.stadiumName || 'N/A'}</td>
+                                    <td>User #${request.userId}</td>
+                                    <td>${new Date(request.slotStart).toLocaleString()} - ${new Date(request.slotEnd).toLocaleString()}</td>
+                                    <td>$${request.price ? request.price.toFixed(2) : '0.00'}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${request.bookingId}, 'Confirmed')">Approve</button>
+                                        <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${request.bookingId}, 'Cancelled')">Reject</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            }
+
+            async function updateBookingStatus(bookingId, status) {
+                try {
+                    await API.updateBookingStatus(bookingId, status);
+                    await loadRequests();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            window.updateBookingStatus = updateBookingStatus;
+        });
+    </script>
+</body>
+</html>
+

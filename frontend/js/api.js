@@ -176,6 +176,13 @@ const API = {
         });
     },
 
+    async updateBookingStatus(bookingId, status) {
+        return this.request(`/api/bookings/${bookingId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status }),
+        });
+    },
+
     async updateBookingStatus(id, status) {
         return this.request(`/api/bookings/${id}/status`, {
             method: 'PUT',
