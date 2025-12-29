@@ -135,7 +135,7 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 		var dateStr string
 		var startTimeStr, endTimeStr string
 		var bookerId sql.NullInt64
-		var createdDateStr string
+		var createdDate time.Time
 
 		err := rows.Scan(
 			&availability.Id,
@@ -147,7 +147,7 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 			&bookerId,
 			&availability.AvailabilityDone,
 			&availability.OwnerId,
-			&createdDateStr,
+			&createdDate,
 			&availability.CreatedBy,
 			&availability.IsDeleted,
 		)
@@ -163,23 +163,11 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 
 		availability.StartTime = startTimeStr
 		availability.EndTime = endTimeStr
+		availability.CreatedDate = createdDate
 
 		if bookerId.Valid {
 			bookerIdInt := int(bookerId.Int64)
 			availability.BookerId = &bookerIdInt
-		}
-
-		// Parse created date - SQL Server returns datetime as string
-		availability.CreatedDate, err = time.Parse("2006-01-02 15:04:05.0000000", createdDateStr)
-		if err != nil {
-			// Try alternative formats
-			availability.CreatedDate, err = time.Parse("2006-01-02T15:04:05Z", createdDateStr)
-			if err != nil {
-				availability.CreatedDate, err = time.Parse("2006-01-02 15:04:05", createdDateStr)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse created date: %w", err)
-				}
-			}
 		}
 
 		availabilities = append(availabilities, availability)
@@ -192,27 +180,249 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 	return availabilities, nil
 }
 
-func DeleteArenaAvailability(availabilityId string, ownerId int) error {
-	// Verify ownership
-	var count int
-	err := config.DB.QueryRow(`
-		SELECT COUNT(*) 
-		FROM ArenaAvailability 
-		WHERE Id = @p1 AND OwnerId = @p2 AND IsDeleted = 0
-	`, availabilityId, ownerId).Scan(&count)
+// getOrderByColumn maps frontend sort column names to actual SQL column/expression
+func getOrderByColumn(sortColumn string) string {
+	columnMap := map[string]string{
+		"Date":        "aa.Date",
+		"StartTime":   "aa.StartTime",
+		"EndTime":     "aa.EndTime",
+		"StadiumName": "s.Name",
+		"ArenaName":   "a.Name",
+		"BookerName":  "u.FullName",
+		"CreatedDate": "aa.CreatedDate",
+	}
+
+	if mapped, ok := columnMap[sortColumn]; ok {
+		return mapped
+	}
+	return "aa.CreatedDate" // default
+}
+
+func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*models.PaginatedAvailabilities, error) {
+	// Validate and set sort column (whitelist to prevent SQL injection)
+	sortColumn := params.SortColumn
+	validSortColumns := map[string]bool{
+		"Date": true, "StartTime": true, "EndTime": true,
+		"StadiumName": true, "ArenaName": true, "BookerName": true, "CreatedDate": true,
+	}
+	if !validSortColumns[sortColumn] {
+		sortColumn = "CreatedDate"
+	}
+
+	// Validate sort direction
+	sortDirection := params.SortDirection
+	if sortDirection != "ASC" && sortDirection != "DESC" {
+		sortDirection = "DESC"
+	}
+
+	// Validate pagination parameters
+	if params.PageNumber < 1 {
+		params.PageNumber = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 10
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Calculate pagination
+	offset := (params.PageNumber - 1) * params.PageSize
+
+	// Build WHERE clause for count and main query
+	var countQuery string
+	var query string
+	var countArgs []interface{}
+	var queryArgs []interface{}
+
+	if params.SearchText != "" {
+		searchPattern := "%" + params.SearchText + "%"
+		countQuery = `
+			SELECT COUNT(*) 
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			LEFT JOIN Users u ON aa.BookerId = u.UserId
+			WHERE aa.OwnerId = @p1 
+			AND aa.IsDeleted = 0
+			AND (
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p2 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p2 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
+				s.Name LIKE @p2 OR
+				a.Name LIKE @p2 OR
+				ISNULL(u.FullName, '') LIKE @p2 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p2
+			)
+		`
+		countArgs = []interface{}{params.OwnerId, searchPattern}
+
+		// Map sort column to actual SQL column/expression
+		orderByColumn := getOrderByColumn(sortColumn)
+		query = fmt.Sprintf(`
+			SELECT 
+				CAST(aa.Id AS VARCHAR(36)) AS Id,
+				CONVERT(VARCHAR, aa.Date, 120) AS Date,
+				CAST(aa.StartTime AS VARCHAR) AS StartTime,
+				CAST(aa.EndTime AS VARCHAR) AS EndTime,
+				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
+				s.Name AS StadiumName,
+				a.Name AS ArenaName,
+				u.FullName AS BookerName,
+				aa.AvailabilityDone AS Reserved,
+				CONVERT(VARCHAR, aa.CreatedDate, 120) AS CreatedDate,
+				aa.StadiumId,
+				aa.ArenaId
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			LEFT JOIN Users u ON aa.BookerId = u.UserId
+			WHERE aa.OwnerId = @p1 
+			AND aa.IsDeleted = 0
+			AND (
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p2 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p2 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
+				s.Name LIKE @p2 OR
+				a.Name LIKE @p2 OR
+				ISNULL(u.FullName, '') LIKE @p2 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p2
+			)
+			ORDER BY %s %s 
+			OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY
+		`, orderByColumn, sortDirection)
+		queryArgs = []interface{}{params.OwnerId, searchPattern, offset, params.PageSize}
+	} else {
+		countQuery = `
+			SELECT COUNT(*) 
+			FROM ArenaAvailability aa
+			WHERE aa.OwnerId = @p1 AND aa.IsDeleted = 0
+		`
+		countArgs = []interface{}{params.OwnerId}
+
+		// Map sort column to actual SQL column/expression
+		orderByColumn := getOrderByColumn(sortColumn)
+		query = fmt.Sprintf(`
+			SELECT 
+				CAST(aa.Id AS VARCHAR(36)) AS Id,
+				CONVERT(VARCHAR, aa.Date, 120) AS Date,
+				CAST(aa.StartTime AS VARCHAR) AS StartTime,
+				CAST(aa.EndTime AS VARCHAR) AS EndTime,
+				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
+				s.Name AS StadiumName,
+				a.Name AS ArenaName,
+				u.FullName AS BookerName,
+				aa.AvailabilityDone AS Reserved,
+				CONVERT(VARCHAR, aa.CreatedDate, 120) AS CreatedDate,
+				aa.StadiumId,
+				aa.ArenaId
+			FROM ArenaAvailability aa
+			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
+			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			LEFT JOIN Users u ON aa.BookerId = u.UserId
+			WHERE aa.OwnerId = @p1 AND aa.IsDeleted = 0
+			ORDER BY %s %s 
+			OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
+		`, orderByColumn, sortDirection)
+		queryArgs = []interface{}{params.OwnerId, offset, params.PageSize}
+	}
+
+	// Get total count
+	var totalCount int
+	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
+	if params.PageNumber > totalPages && totalPages > 0 {
+		params.PageNumber = totalPages
+		// Recalculate offset and query args if page number was adjusted
+		offset = (params.PageNumber - 1) * params.PageSize
+		if params.SearchText != "" {
+			queryArgs[2] = offset
+		} else {
+			queryArgs[1] = offset
+		}
+	}
+
+	// Execute main query
+	rows, err := config.DB.Query(query, queryArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query availabilities: %w", err)
+	}
+	defer rows.Close()
+
+	var availabilities []models.AvailabilityWithDetails
+	for rows.Next() {
+		var availability models.AvailabilityWithDetails
+		var bookerName sql.NullString
+
+		err := rows.Scan(
+			&availability.Id,
+			&availability.Date,
+			&availability.StartTime,
+			&availability.EndTime,
+			&availability.TotalDuration,
+			&availability.StadiumName,
+			&availability.ArenaName,
+			&bookerName,
+			&availability.Reserved,
+			&availability.CreatedDate,
+			&availability.StadiumId,
+			&availability.ArenaId,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan availability: %w", err)
+		}
+
+		if bookerName.Valid {
+			availability.BookerName = &bookerName.String
+		}
+
+		availabilities = append(availabilities, availability)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return &models.PaginatedAvailabilities{
+		Availabilities: availabilities,
+		TotalCount:     totalCount,
+		TotalPages:     totalPages,
+		PageNumber:     params.PageNumber,
+		PageSize:       params.PageSize,
+	}, nil
+}
+
+func DeleteArenaAvailability(availabilityId string, ownerId int) error {
+	// Verify ownership and check if reserved
+	// Note: Id is UNIQUEIDENTIFIER in SQL Server, convert the column to VARCHAR for comparison
+	var availabilityDone bool
+	err := config.DB.QueryRow(`
+		SELECT AvailabilityDone
+		FROM ArenaAvailability 
+		WHERE CAST(Id AS VARCHAR(36)) = @p1 AND OwnerId = @p2 AND IsDeleted = 0
+	`, availabilityId, ownerId).Scan(&availabilityDone)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("availability not found or you don't own it")
+		}
 		return fmt.Errorf("failed to verify ownership: %w", err)
 	}
 
-	if count == 0 {
-		return errors.New("availability not found or you don't own it")
+	// Check if reserved (AvailabilityDone = 1)
+	if availabilityDone {
+		return errors.New("cannot delete reserved availability")
 	}
 
-	// Soft delete
+	// Soft delete - convert the UNIQUEIDENTIFIER column to VARCHAR for comparison
 	_, err = config.DB.Exec(`
 		UPDATE ArenaAvailability 
 		SET IsDeleted = 1 
-		WHERE Id = @p1
+		WHERE CAST(Id AS VARCHAR(36)) = @p1
 	`, availabilityId)
 	if err != nil {
 		return fmt.Errorf("failed to delete availability: %w", err)

@@ -60,6 +60,62 @@ func GetArenaAvailabilities(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(availabilities)
 }
 
+func GetOwnerAvailabilities(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	user := middleware.GetUserFromContext(r)
+	if user == nil || user.Role != "Owner" {
+		utils.RespondWithError(w, http.StatusForbidden, "only owners can view availabilities")
+		return
+	}
+
+	// Parse query parameters
+	searchText := r.URL.Query().Get("searchText")
+	sortColumn := r.URL.Query().Get("sortColumn")
+	if sortColumn == "" {
+		sortColumn = "CreatedDate"
+	}
+	sortDirection := r.URL.Query().Get("sortDirection")
+	if sortDirection == "" {
+		sortDirection = "DESC"
+	}
+
+	pageNumber := 1
+	if pn := r.URL.Query().Get("pageNumber"); pn != "" {
+		if pnInt, err := strconv.Atoi(pn); err == nil && pnInt > 0 {
+			pageNumber = pnInt
+		}
+	}
+
+	pageSize := 10
+	if ps := r.URL.Query().Get("pageSize"); ps != "" {
+		if psInt, err := strconv.Atoi(ps); err == nil && psInt > 0 && psInt <= 100 {
+			pageSize = psInt
+		}
+	}
+
+	params := models.AvailabilitySearchParams{
+		OwnerId:       user.UserID,
+		SearchText:    searchText,
+		SortColumn:    sortColumn,
+		SortDirection: sortDirection,
+		PageNumber:    pageNumber,
+		PageSize:      pageSize,
+	}
+
+	result, err := services.GetOwnerAvailabilitiesPaginated(params)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 func DeleteArenaAvailability(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")

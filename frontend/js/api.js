@@ -209,5 +209,18 @@ const API = {
             method: 'DELETE',
         });
     },
+
+    async getOwnerAvailabilities(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/availability?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
 };
 

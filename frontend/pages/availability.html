@@ -50,11 +50,31 @@
         <main class="dashboard-content">
             <h2 class="mb-3">Availability</h2>
             <p class="text-muted mb-4">Manage availability schedules for your arenas.</p>
-            <div id="availabilityContent" class="table-container">
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>Availability management functionality coming soon.
+            
+            <!-- Search Section -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label for="availabilitySearch" class="form-label">Search</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="availabilitySearch" 
+                                placeholder="Search by date, time, stadium, arena, booker..."
+                                onkeyup="handleAvailabilitySearch(event)"
+                                oninput="handleAvailabilitySearchInput(event)"
+                            >
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Table Container -->
+            <div id="availabilityTable" class="table-container"></div>
+            
+            <!-- Pagination Footer -->
+            <div id="availabilityPagination" class="arena-table-footer"></div>
         </main>
     </div>
 
@@ -63,21 +83,6 @@
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const userStr = sessionStorage.getItem('user');
-            if (!userStr) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const user = JSON.parse(userStr);
-            if (user.role !== 'Owner') {
-                window.location.href = 'dashboard.html';
-                return;
-            }
-        });
-    </script>
+    <script src="../js/availability.js"></script>
 </body>
 </html>
-
