@@ -35,3 +35,20 @@ type SlotAvailability struct {
 	SlotEnd   time.Time `json:"slotEnd"`
 	Available bool      `json:"available"`
 }
+
+type ArenaSearchParams struct {
+	StadiumID     int
+	SearchText    string
+	SortColumn    string
+	SortDirection string
+	PageNumber    int
+	PageSize      int
+}
+
+type PaginatedArenas struct {
+	Arenas     []Arena `json:"arenas"`
+	TotalCount int     `json:"totalCount"`
+	PageNumber int     `json:"pageNumber"`
+	PageSize   int     `json:"pageSize"`
+	TotalPages int     `json:"totalPages"`
+}
