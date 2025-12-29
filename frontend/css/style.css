@@ -99,6 +99,15 @@ body {
     font-size: 1rem;
 }
 
+.form-group select {
+    background-color: white;
+    cursor: pointer;
+}
+
+.form-group select:hover {
+    border-color: #3498db;
+}
+
 .form-group small {
     display: block;
     margin-top: 5px;

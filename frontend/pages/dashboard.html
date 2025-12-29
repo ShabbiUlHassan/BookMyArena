@@ -80,15 +80,37 @@
                 </div>
                 <div class="form-group">
                     <label>Sport Type</label>
-                    <input type="text" id="arenaSportType" required>
+                    <select id="arenaSportType" required>
+                        <option value="">Select Sport Type</option>
+                        <option value="soccer">Soccer</option>
+                        <option value="cricket">Cricket</option>
+                        <option value="hockey">Hockey</option>
+                        <option value="tennis">Tennis</option>
+                        <option value="basketball">Basketball</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Capacity</label>
-                    <input type="number" id="arenaCapacity" required min="1">
+                    <select id="arenaCapacity" required>
+                        <option value="">Select Capacity</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Slot Duration (minutes)</label>
-                    <input type="number" id="arenaSlotDuration" required min="30" step="30">
+                    <select id="arenaSlotDuration" required>
+                        <option value="">Select Duration</option>
+                        <option value="30">30</option>
+                        <option value="45">45</option>
+                        <option value="60">60</option>
+                        <option value="90">90</option>
+                        <option value="120">120</option>
+                        <option value="150">150</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Price per Slot</label>
