@@ -237,8 +237,8 @@ func UpdateBookingRequestStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Status != "Booked" && req.Status != "Cancelled" {
-		utils.RespondWithError(w, http.StatusBadRequest, "invalid status. Must be 'Booked' or 'Cancelled'")
+	if req.Status != "Booked" && req.Status != "Declined" {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid status. Must be 'Booked' or 'Declined'")
 		return
 	}
 

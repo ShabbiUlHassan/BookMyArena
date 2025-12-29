@@ -629,8 +629,8 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 
 func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus string) error {
 	// Validate status
-	if newStatus != "Booked" && newStatus != "Cancelled" {
-		return errors.New("invalid status. Must be 'Booked' or 'Cancelled'")
+	if newStatus != "Booked" && newStatus != "Declined" {
+		return errors.New("invalid status. Must be 'Booked' or 'Declined'")
 	}
 
 	// Begin transaction
