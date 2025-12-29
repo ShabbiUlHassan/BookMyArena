@@ -710,7 +710,7 @@ async function editArena(arenaId, stadiumId) {
         document.getElementById('addArenaForm').dataset.isEdit = 'true';
         
         // Change modal title and button text
-        const modalTitle = document.querySelector('#addArenaModal h3');
+        const modalTitle = document.querySelector('#addArenaModal .modal-title');
         const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
         if (modalTitle) modalTitle.textContent = 'Edit Arena';
         if (submitButton) submitButton.textContent = 'Update Arena';
