@@ -15,48 +15,19 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="dashboard.html">BookMyArena</a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <a class="nav-link" href="#" onclick="logout(); return false;">Logout</a>
+            <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+                <span class="text-light" id="userName"></span>
+                <a class="nav-link" href="#" id="logoutLink">Logout</a>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 sidebar bg-dark" id="sidebar">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="dashboard.html">
-                            <i class="bi bi-house-door me-2"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="booking.html">
-                            <i class="bi bi-calendar-check me-2"></i>Booking
-                        </a>
-                    </li>
-                    <li class="nav-item" id="requestsNavItem" style="display: none;">
-                        <a class="nav-link" href="requests.html">
-                            <i class="bi bi-envelope me-2"></i>Requests
-                        </a>
-                    </li>
-                    <li class="nav-item" id="paymentsNavItem" style="display: none;">
-                        <a class="nav-link" href="payments.html">
-                            <i class="bi bi-credit-card me-2"></i>Payments
-                        </a>
-                    </li>
-                    <li class="nav-item" id="availabilityNavItem" style="display: none;">
-                        <a class="nav-link" href="availability.html">
-                            <i class="bi bi-clock me-2"></i>Availability
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+    <div class="dashboard-layout">
+        <!-- Sidebar Container - populated by navigation.js -->
+        <div id="sidebar-container"></div>
 
-            <!-- Main Content -->
-            <main class="col-md-9 col-lg-10 dashboard-content">
+        <!-- Main Content -->
+        <main class="dashboard-content">
                 <!-- Owner Bookings Section -->
                 <div id="ownerBookingSection" style="display: none;">
                     <section class="section">
@@ -115,8 +86,7 @@
                         <div id="bookingRequestPagination" class="arena-table-footer"></div>
                     </section>
                 </div>
-            </main>
-        </div>
+        </main>
     </div>
 
     <!-- Bootstrap JS -->
@@ -201,6 +171,13 @@
             }
         }
 
+        // Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
+        function formatTime(timeStr) {
+            if (!timeStr || timeStr === 'N/A') return timeStr;
+            // Remove milliseconds/microseconds (decimal point and everything after)
+            return timeStr.replace(/\.\d+/g, '').trim();
+        }
+
         function displayBookingRequests(result) {
             const tableContainer = document.getElementById('bookingRequestTable');
             const paginationContainer = document.getElementById('bookingRequestPagination');
@@ -249,8 +226,8 @@
                             const stadiumName = br.stadiumName || 'N/A';
                             const arenaName = br.arenaName || 'N/A';
                             const date = br.date || 'N/A';
-                            const startTime = br.startTime || 'N/A';
-                            const endTime = br.endTime || 'N/A';
+                            const startTime = formatTime(br.startTime || 'N/A');
+                            const endTime = formatTime(br.endTime || 'N/A');
                             const totalDuration = br.totalDuration || 0;
                             const price = br.price ? br.price.toFixed(2) : '0.00';
                             const status = br.status || 'N/A';

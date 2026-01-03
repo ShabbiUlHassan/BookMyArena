@@ -818,6 +818,13 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
     }
 }
 
+// Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
+function formatTime(timeStr) {
+    if (!timeStr || timeStr === 'N/A') return timeStr;
+    // Remove milliseconds/microseconds (decimal point and everything after)
+    return timeStr.replace(/\.\d+/g, '').trim();
+}
+
 function displayUserAvailabilityTable(result) {
     const tableContainer = document.getElementById('userAvailabilityTable');
     const paginationContainer = document.getElementById('userAvailabilityPagination');
@@ -874,8 +881,8 @@ function displayUserAvailabilityTable(result) {
                     const sportType = availability.sportType || 'N/A';
                     const capacity = availability.capacity || 0;
                     const date = availability.date || 'N/A';
-                    const startTime = availability.startTime || 'N/A';
-                    const endTime = availability.endTime || 'N/A';
+                    const startTime = formatTime(availability.startTime || 'N/A');
+                    const endTime = formatTime(availability.endTime || 'N/A');
                     const totalDuration = availability.totalDuration || 0;
                     const price = availability.price ? availability.price.toFixed(2) : '0.00';
                     const availabilityId = availability.id || '';

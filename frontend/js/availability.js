@@ -68,6 +68,13 @@ async function loadAvailabilityTable(pageNumber = availabilityState.pageNumber, 
     }
 }
 
+// Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
+function formatTime(timeStr) {
+    if (!timeStr || timeStr === 'N/A') return timeStr;
+    // Remove milliseconds/microseconds (decimal point and everything after)
+    return timeStr.replace(/\.\d+/g, '').trim();
+}
+
 function displayAvailabilityTable(result) {
     const tableContainer = document.getElementById('availabilityTable');
     const paginationContainer = document.getElementById('availabilityPagination');
@@ -118,8 +125,8 @@ function displayAvailabilityTable(result) {
             <tbody>
                 ${result.availabilities.map(availability => {
                     const date = availability.date || 'N/A';
-                    const startTime = availability.startTime || 'N/A';
-                    const endTime = availability.endTime || 'N/A';
+                    const startTime = formatTime(availability.startTime || 'N/A');
+                    const endTime = formatTime(availability.endTime || 'N/A');
                     const totalDuration = availability.totalDuration || 0;
                     const stadiumName = availability.stadiumName || 'N/A';
                     const arenaName = availability.arenaName || 'N/A';
