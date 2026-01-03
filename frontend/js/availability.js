@@ -86,7 +86,7 @@ function displayAvailabilityTable(result) {
     // Generate sort icon
     const getSortIcon = (col) => {
         if (col !== sortColumn) {
-            return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+            return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
         }
         return sortDirection === 'ASC' 
             ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 

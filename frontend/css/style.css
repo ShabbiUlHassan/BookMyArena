@@ -62,11 +62,12 @@ small {
 /* Navbar - Bootstrap override */
 .navbar-brand {
     font-size: 1.5rem;
+    padding-left: 260px;
 }
 
 .navbar-dark,
 .navbar.bg-dark {
-    background-color: #667eea !important;
+    background-color: #0F2854 !important;
 }
 
 .navbar-dark .navbar-nav .nav-link,
@@ -144,8 +145,9 @@ small {
 }
 
 .btn-primary {
-    background-color: #667eea;
+    background-color: #1C4D8D;
     color: white;
+    font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -334,7 +336,7 @@ small {
     display: flex;
     align-items: center;
     gap: 15px;
-    color: #6c757d;
+    color: #4988C4;
     font-size: 0.9rem;
 }
 
@@ -392,7 +394,7 @@ small {
 }
 
 .pagination .page-item.disabled .page-link {
-    color: #6c757d;
+    color: #4988C4;
     cursor: not-allowed;
     opacity: 0.5;
     background-color: #e9ecef;
@@ -401,7 +403,7 @@ small {
 .pagination .page-item.disabled .page-link:hover {
     background-color: #e9ecef;
     border-color: #dee2e6;
-    color: #6c757d;
+    color: #4988C4;
     transform: none;
     box-shadow: none;
 }
@@ -411,6 +413,7 @@ small {
     user-select: none;
     position: relative;
     transition: background-color 0.2s ease;
+    white-space: nowrap !important;
 }
 
 .sortable-header:hover {
@@ -423,6 +426,10 @@ small {
     opacity: 0.7;
     transition: opacity 0.2s ease;
     display: inline-block;
+}
+
+.sort-icon + .sort-icon {
+    margin-left: 4px;
 }
 
 .sortable-header:hover .sort-icon {
@@ -504,7 +511,7 @@ small {
 }
 
 .data-table thead {
-    background-color: #667eea !important;
+    background-color: #1C4D8D !important;
     color: white !important;
 }
 
@@ -519,6 +526,7 @@ small {
     color: white !important;
     vertical-align: middle !important;
     background: transparent !important;
+    white-space: nowrap !important;
 }
 
 .data-table thead th:first-child {
@@ -555,6 +563,7 @@ small {
     vertical-align: middle !important;
     color: #495057 !important;
     background: transparent !important;
+    white-space: nowrap !important;
 }
 
 .data-table tbody tr:last-child td:first-child {
@@ -635,9 +644,10 @@ small {
 }
 
 .btn-primary {
-    background-color: #667eea;
+    background-color: #1C4D8D;
     color: white;
-    border-color: #667eea;
+    border-color: #1C4D8D;
+    font-weight: 600;
 }
 
 .btn-primary:hover:not(.disabled) {
@@ -646,9 +656,9 @@ small {
 }
 
 .btn-secondary {
-    background-color: #6c757d;
+    background-color: #4988C4;
     color: white;
-    border-color: #6c757d;
+    border-color: #4988C4;
 }
 
 .btn-secondary:hover:not(.disabled) {
@@ -775,13 +785,13 @@ small {
 
 .sidebar {
     width: 250px;
-    background-color: #667eea;
+    background-color: #0F2854 !important;
     color: white;
     padding: 20px 0;
     position: fixed;
     left: 0;
-    top: 56px; /* Bootstrap navbar height */
-    height: calc(100vh - 56px);
+    top: 0;
+    height: 100vh;
     overflow-y: auto;
     box-shadow: 2px 0 4px rgba(0,0,0,0.1);
     z-index: 1000;
@@ -805,6 +815,7 @@ small {
     text-decoration: none;
     transition: background-color 0.2s;
     gap: 10px;
+    font-weight: 700;
 }
 
 .nav-link:hover {

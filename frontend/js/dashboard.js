@@ -329,7 +329,7 @@ function displayArenasTable(stadiumId, result) {
     // Generate sort icon
         const getSortIcon = (col) => {
             if (col !== sortColumn) {
-                return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+                return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
             }
             return sortDirection === 'ASC' 
                 ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
@@ -352,7 +352,7 @@ function displayArenasTable(stadiumId, result) {
                     <th class="sortable-header" onclick="${getSortHandler('SlotDuration')}">Slot Duration ${getSortIcon('SlotDuration')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('Price')}">Price per Slot ${getSortIcon('Price')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('CreatedAt')}">Created At ${getSortIcon('CreatedAt')}</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -836,7 +836,7 @@ function displayUserAvailabilityTable(result) {
     // Generate sort icon
         const getSortIcon = (col) => {
             if (col !== sortColumn) {
-                return '<i class="bi bi-arrow-down-up sort-icon" style="opacity: 0.5;"></i>';
+                return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
             }
             return sortDirection === 'ASC' 
                 ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
@@ -863,7 +863,7 @@ function displayUserAvailabilityTable(result) {
                     <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
                     <th>Total Duration (Minutes)</th>
                     <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -1065,7 +1065,7 @@ function displayAvailableArenas(arenas) {
                     <th>Slot Duration</th>
                     <th>Available Hours</th>
                     <th>Price per Slot</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>

@@ -51,7 +51,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userObj = JSON.parse(user);
         const userNameEl = document.getElementById('userName');
         if (userNameEl) {
-            userNameEl.textContent = userObj.fullName || userObj.email;
+            const userName = userObj.fullName || userObj.email;
+            const role = userObj.role || 'User';
+            userNameEl.innerHTML = `Welcome, <strong>${userName}</strong>. You are our Pride <strong>${role}</strong>.`;
         }
     }
 });
