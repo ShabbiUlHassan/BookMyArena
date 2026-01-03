@@ -40,10 +40,24 @@
                                 type="text" 
                                 class="form-control" 
                                 id="availabilitySearch" 
-                                placeholder="Search by date, time, stadium, arena, booker..."
+                                placeholder="Search by Date, Time, Stadium, Arena, Booker..."
                                 onkeyup="handleAvailabilitySearch(event)"
                                 oninput="handleAvailabilitySearchInput(event)"
                             >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Filter by Reservation</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn" id="filterReservedBtn" onclick="handleReservationFilter(true)" style="background-color: #28a745; color: white; border: none;">
+                                    Reserved
+                                </button>
+                                <button type="button" class="btn" id="filterFreeBtn" onclick="handleReservationFilter(false)" style="background-color: #4988C4; color: white; border: none;">
+                                    Free
+                                </button>
+                                <button type="button" class="btn" id="clearFilterBtn" onclick="clearReservationFilter()" style="background-color: #4988C4; color: white; border: none; display: none;">
+                                    Clear Filter
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
