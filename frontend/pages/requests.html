@@ -76,6 +76,23 @@
                                         oninput="handleOwnerBookingRequestSearchInput(event)"
                                     >
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Filter by Status</label>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn" id="filterAcceptBtn" onclick="handleStatusFilter('Booked')" style="background-color: #28a745; color: white; border: none;">
+                                            Accept
+                                        </button>
+                                        <button type="button" class="btn" id="filterDeclineBtn" onclick="handleStatusFilter('Declined')" style="background-color: #dc3545; color: white; border: none;">
+                                            Decline
+                                        </button>
+                                        <button type="button" class="btn" id="filterPendingBtn" onclick="handleStatusFilter('Pending')" style="background-color: #4988C4; color: white; border: none;">
+                                            Pending
+                                        </button>
+                                        <button type="button" class="btn" id="clearFilterBtn" onclick="clearStatusFilter()" style="background-color: #6c757d; color: white; border: none; display: none;">
+                                            Clear Filter
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -121,11 +138,13 @@
             pageSize: 10,
             searchText: '',
             sortColumn: 'CreatedDate',
-            sortDirection: 'DESC'
+            sortDirection: 'DESC',
+            statusFilter: null // 'Booked' for Accept, 'Declined' for Decline, null for all
         };
         let ownerBookingRequestSearchTimeout = null;
+        let allBookingRequests = []; // Store all fetched requests for client-side filtering
 
-        async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection) {
+        async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection, statusFilter = ownerBookingRequestState.statusFilter) {
             const tableContainer = document.getElementById('ownerBookingRequestTable');
             const paginationContainer = document.getElementById('ownerBookingRequestPagination');
             
@@ -134,27 +153,55 @@
             tableContainer.innerHTML = '<p>Loading booking requests...</p>';
 
             try {
+                // Fetch all data for client-side filtering by status
+                // Using a large page size to get all records, then filter client-side
                 const result = await API.getOwnerBookingRequests({
                     searchText,
                     sortColumn,
                     sortDirection,
-                    pageNumber,
-                    pageSize
+                    pageNumber: 1,
+                    pageSize: 1000 // Get all records for filtering
                 });
 
                 console.log('Loaded owner booking requests:', result);
 
+                // Store all requests
+                allBookingRequests = result.bookingRequests || [];
+
+                // Apply status filter if set
+                let filteredRequests = allBookingRequests;
+                if (statusFilter) {
+                    filteredRequests = allBookingRequests.filter(br => (br.status || 'N/A') === statusFilter);
+                }
+
+                // Apply pagination to filtered results
+                const startIndex = (pageNumber - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
+                const totalCount = filteredRequests.length;
+                const totalPages = Math.ceil(totalCount / pageSize);
+
+                // Create result object with filtered and paginated data
+                const filteredResult = {
+                    bookingRequests: paginatedRequests,
+                    totalCount: totalCount,
+                    totalPages: totalPages,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize
+                };
+
                 ownerBookingRequestState = {
-                    pageNumber: result.pageNumber || 1,
-                    pageSize: result.pageSize || 10,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
                     searchText: searchText,
                     sortColumn: sortColumn,
                     sortDirection: sortDirection,
-                    totalCount: result.totalCount || 0,
-                    totalPages: result.totalPages || 0
+                    statusFilter: statusFilter,
+                    totalCount: totalCount,
+                    totalPages: totalPages
                 };
 
-                displayOwnerBookingRequests(result);
+                displayOwnerBookingRequests(filteredResult);
             } catch (error) {
                 console.error('Error loading booking requests:', error);
                 tableContainer.innerHTML = `<p class="error-message">Error loading booking requests: ${error.message}</p>`;
@@ -287,7 +334,7 @@
             if (event.key === 'Enter') {
                 const searchInput = document.getElementById('ownerBookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
             }
         }
 
@@ -296,20 +343,78 @@
             ownerBookingRequestSearchTimeout = setTimeout(() => {
                 const searchInput = document.getElementById('ownerBookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
             }, 500);
         }
 
         function handleOwnerBookingRequestSort(sortColumn, sortDirection) {
-            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, sortColumn, sortDirection);
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, sortColumn, sortDirection, ownerBookingRequestState.statusFilter);
         }
 
         function handleOwnerBookingRequestPageChange(pageNumber) {
-            loadOwnerBookingRequests(pageNumber, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            loadOwnerBookingRequests(pageNumber, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
         }
 
         function handleOwnerBookingRequestPageSizeChange(pageSize) {
-            loadOwnerBookingRequests(1, parseInt(pageSize), ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            loadOwnerBookingRequests(1, parseInt(pageSize), ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
+        }
+
+        function handleStatusFilter(status) {
+            // Set filter (don't toggle - always set to the clicked status)
+            const newFilter = status;
+            
+            // Update button styles and clear filter button visibility
+            updateFilterButtonStyles(newFilter);
+            
+            // Reload with new filter
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
+        }
+
+        function clearStatusFilter() {
+            // Remove filter
+            const newFilter = null;
+            
+            // Update button styles and clear filter button visibility
+            updateFilterButtonStyles(newFilter);
+            
+            // Reload without filter
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
+        }
+
+        function updateFilterButtonStyles(statusFilter) {
+            const acceptBtn = document.getElementById('filterAcceptBtn');
+            const declineBtn = document.getElementById('filterDeclineBtn');
+            const pendingBtn = document.getElementById('filterPendingBtn');
+            const clearBtn = document.getElementById('clearFilterBtn');
+            
+            if (acceptBtn && declineBtn && pendingBtn && clearBtn) {
+                // Always set opacity to 1 for all filter buttons
+                acceptBtn.style.opacity = '1';
+                declineBtn.style.opacity = '1';
+                pendingBtn.style.opacity = '1';
+                
+                if (statusFilter === 'Booked') {
+                    acceptBtn.style.fontWeight = 'bold';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Declined') {
+                    declineBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Pending') {
+                    pendingBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else {
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'none';
+                }
+            }
         }
 
         let pendingAction = null; // Store the pending action (bookingRequestId and status)
@@ -375,6 +480,8 @@
         window.handleOwnerBookingRequestSort = handleOwnerBookingRequestSort;
         window.handleOwnerBookingRequestPageChange = handleOwnerBookingRequestPageChange;
         window.handleOwnerBookingRequestPageSizeChange = handleOwnerBookingRequestPageSizeChange;
+        window.handleStatusFilter = handleStatusFilter;
+        window.clearStatusFilter = clearStatusFilter;
         window.acceptBookingRequest = acceptBookingRequest;
         window.declineBookingRequest = declineBookingRequest;
         window.executePendingAction = executePendingAction;
@@ -398,6 +505,9 @@
                 window.location.href = 'dashboard.html';
                 return;
             }
+
+            // Initialize filter button styles
+            updateFilterButtonStyles(null);
 
             await loadOwnerBookingRequests();
         });

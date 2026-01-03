@@ -715,8 +715,8 @@ small {
 }
 
 .status-pending {
-    background-color: #ffc107;
-    color: #000;
+    background-color: #4988C4;
+    color: white;
 }
 
 .status-booked {
