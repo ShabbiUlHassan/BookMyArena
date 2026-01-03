@@ -87,6 +87,23 @@
                                             oninput="handleBookingRequestSearchInput(event)"
                                         >
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Filter by Status</label>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn" id="filterAcceptBtn" onclick="handleBookingStatusFilter('Booked')" style="background-color: #28a745; color: white; border: none;">
+                                                Accept
+                                            </button>
+                                            <button type="button" class="btn" id="filterDeclineBtn" onclick="handleBookingStatusFilter('Declined')" style="background-color: #dc3545; color: white; border: none;">
+                                                Decline
+                                            </button>
+                                            <button type="button" class="btn" id="filterPendingBtn" onclick="handleBookingStatusFilter('Pending')" style="background-color: #4988C4; color: white; border: none;">
+                                                Pending
+                                            </button>
+                                            <button type="button" class="btn" id="clearFilterBtn" onclick="clearBookingStatusFilter()" style="background-color: #6c757d; color: white; border: none; display: none;">
+                                                Clear Filter
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -114,11 +131,13 @@
             pageSize: 10,
             searchText: '',
             sortColumn: 'CreatedDate',
-            sortDirection: 'DESC'
+            sortDirection: 'DESC',
+            statusFilter: null // 'Booked' for Accept, 'Declined' for Decline, 'Pending' for Pending, null for all
         };
         let bookingRequestSearchTimeout = null;
+        let allBookingRequests = []; // Store all fetched requests for client-side filtering
 
-        async function loadBookingRequests(pageNumber = bookingRequestState.pageNumber, pageSize = bookingRequestState.pageSize, searchText = bookingRequestState.searchText, sortColumn = bookingRequestState.sortColumn, sortDirection = bookingRequestState.sortDirection) {
+        async function loadBookingRequests(pageNumber = bookingRequestState.pageNumber, pageSize = bookingRequestState.pageSize, searchText = bookingRequestState.searchText, sortColumn = bookingRequestState.sortColumn, sortDirection = bookingRequestState.sortDirection, statusFilter = bookingRequestState.statusFilter) {
             const tableContainer = document.getElementById('bookingRequestTable');
             const paginationContainer = document.getElementById('bookingRequestPagination');
             
@@ -127,27 +146,55 @@
             tableContainer.innerHTML = '<p>Loading booking requests...</p>';
 
             try {
+                // Fetch all data for client-side filtering by status
+                // Using a large page size to get all records, then filter client-side
                 const result = await API.getUserBookingRequests({
                     searchText,
                     sortColumn,
                     sortDirection,
-                    pageNumber,
-                    pageSize
+                    pageNumber: 1,
+                    pageSize: 1000 // Get all records for filtering
                 });
 
                 console.log('Loaded booking requests:', result);
 
+                // Store all requests
+                allBookingRequests = result.bookingRequests || [];
+
+                // Apply status filter if set
+                let filteredRequests = allBookingRequests;
+                if (statusFilter) {
+                    filteredRequests = allBookingRequests.filter(br => (br.status || 'N/A') === statusFilter);
+                }
+
+                // Apply pagination to filtered results
+                const startIndex = (pageNumber - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
+                const totalCount = filteredRequests.length;
+                const totalPages = Math.ceil(totalCount / pageSize);
+
+                // Create result object with filtered and paginated data
+                const filteredResult = {
+                    bookingRequests: paginatedRequests,
+                    totalCount: totalCount,
+                    totalPages: totalPages,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize
+                };
+
                 bookingRequestState = {
-                    pageNumber: result.pageNumber || 1,
-                    pageSize: result.pageSize || 10,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
                     searchText: searchText,
                     sortColumn: sortColumn,
                     sortDirection: sortDirection,
-                    totalCount: result.totalCount || 0,
-                    totalPages: result.totalPages || 0
+                    statusFilter: statusFilter,
+                    totalCount: totalCount,
+                    totalPages: totalPages
                 };
 
-                displayBookingRequests(result);
+                displayBookingRequests(filteredResult);
             } catch (error) {
                 console.error('Error loading booking requests:', error);
                 tableContainer.innerHTML = `<p class="error-message">Error loading booking requests: ${error.message}</p>`;
@@ -272,7 +319,7 @@
             if (event.key === 'Enter') {
                 const searchInput = document.getElementById('bookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, bookingRequestState.statusFilter);
             }
         }
 
@@ -281,20 +328,78 @@
             bookingRequestSearchTimeout = setTimeout(() => {
                 const searchInput = document.getElementById('bookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+                loadBookingRequests(1, bookingRequestState.pageSize, searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, bookingRequestState.statusFilter);
             }, 500);
         }
 
         function handleBookingRequestSort(sortColumn, sortDirection) {
-            loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, sortColumn, sortDirection);
+            loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, sortColumn, sortDirection, bookingRequestState.statusFilter);
         }
 
         function handleBookingRequestPageChange(pageNumber) {
-            loadBookingRequests(pageNumber, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+            loadBookingRequests(pageNumber, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, bookingRequestState.statusFilter);
         }
 
         function handleBookingRequestPageSizeChange(pageSize) {
-            loadBookingRequests(1, parseInt(pageSize), bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection);
+            loadBookingRequests(1, parseInt(pageSize), bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, bookingRequestState.statusFilter);
+        }
+
+        function handleBookingStatusFilter(status) {
+            // Set filter (don't toggle - always set to the clicked status)
+            const newFilter = status;
+            
+            // Update button styles and clear filter button visibility
+            updateBookingFilterButtonStyles(newFilter);
+            
+            // Reload with new filter
+            loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, newFilter);
+        }
+
+        function clearBookingStatusFilter() {
+            // Remove filter
+            const newFilter = null;
+            
+            // Update button styles and clear filter button visibility
+            updateBookingFilterButtonStyles(newFilter);
+            
+            // Reload without filter
+            loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, newFilter);
+        }
+
+        function updateBookingFilterButtonStyles(statusFilter) {
+            const acceptBtn = document.getElementById('filterAcceptBtn');
+            const declineBtn = document.getElementById('filterDeclineBtn');
+            const pendingBtn = document.getElementById('filterPendingBtn');
+            const clearBtn = document.getElementById('clearFilterBtn');
+            
+            if (acceptBtn && declineBtn && pendingBtn && clearBtn) {
+                // Always set opacity to 1 for all filter buttons
+                acceptBtn.style.opacity = '1';
+                declineBtn.style.opacity = '1';
+                pendingBtn.style.opacity = '1';
+                
+                if (statusFilter === 'Booked') {
+                    acceptBtn.style.fontWeight = 'bold';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Declined') {
+                    declineBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Pending') {
+                    pendingBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else {
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'none';
+                }
+            }
         }
 
         async function deleteBookingRequest(bookingRequestId) {
@@ -317,6 +422,8 @@
         window.handleBookingRequestSort = handleBookingRequestSort;
         window.handleBookingRequestPageChange = handleBookingRequestPageChange;
         window.handleBookingRequestPageSizeChange = handleBookingRequestPageSizeChange;
+        window.handleBookingStatusFilter = handleBookingStatusFilter;
+        window.clearBookingStatusFilter = clearBookingStatusFilter;
         window.deleteBookingRequest = deleteBookingRequest;
 
         // Load data on page load
@@ -336,6 +443,8 @@
             } else {
                 document.getElementById('ownerBookingSection').style.display = 'none';
                 document.getElementById('userBookingSection').style.display = 'block';
+                // Initialize filter button styles
+                updateBookingFilterButtonStyles(null);
                 await loadBookingRequests();
             }
         });
