@@ -129,7 +129,8 @@ async function showBookingModal(arenaId) {
             bookingDate.value = tomorrow.toISOString().split('T')[0];
         }
 
-        document.getElementById('bookingModal').style.display = 'block';
+        const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+        modal.show();
     } catch (error) {
         alert('Error: ' + error.message);
     }

@@ -176,10 +176,115 @@ const API = {
         });
     },
 
+    async updateBookingStatus(bookingId, status) {
+        return this.request(`/api/bookings/${bookingId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status }),
+        });
+    },
+
     async updateBookingStatus(id, status) {
         return this.request(`/api/bookings/${id}/status`, {
             method: 'PUT',
             body: JSON.stringify({ status }),
+        });
+    },
+
+    // Availability endpoints
+    async createArenaAvailability(arenaId, availabilityData) {
+        return this.request(`/api/arenas/${arenaId}/availability`, {
+            method: 'POST',
+            body: JSON.stringify(availabilityData),
+        });
+    },
+
+    async getArenaAvailabilities(arenaId) {
+        return this.request(`/api/arenas/${arenaId}/availability`, {
+            method: 'GET',
+        });
+    },
+
+    async deleteArenaAvailability(availabilityId) {
+        return this.request(`/api/availability/${availabilityId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    async getOwnerAvailabilities(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/availability?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async getUserAvailabilities(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/availability/user?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async getBookingRequestDetails(availabilityId) {
+        return this.request(`/api/booking-requests/details?availabilityId=${availabilityId}`, {
+            method: 'GET',
+        });
+    },
+
+    async createBookingRequest(availabilityId) {
+        return this.request('/api/booking-requests', {
+            method: 'POST',
+            body: JSON.stringify({ availabilityId: availabilityId }),
+        });
+    },
+
+    async getUserBookingRequests(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/booking-requests/user?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async getOwnerBookingRequests(params) {
+        const queryParams = new URLSearchParams();
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/booking-requests/owner?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async deleteBookingRequest(bookingRequestId) {
+        return this.request(`/api/booking-requests/${bookingRequestId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    async updateBookingRequestStatus(bookingRequestId, status) {
+        return this.request(`/api/booking-requests/${bookingRequestId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: status }),
         });
     },
 };

@@ -4,49 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - BookMyArena</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="logo">BookMyArena</h1>
-            <div class="nav-links">
-                <span id="userName"></span>
-                <a href="search.html">Search Arenas</a>
-                <a href="#" id="logoutLink">Logout</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="dashboard.html">BookMyArena</a>
+            <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+                <span class="text-light" id="userName"></span>
+                <a class="nav-link" href="#" id="logoutLink">Logout</a>
             </div>
         </div>
     </nav>
 
-    <main class="container">
-        <div id="ownerDashboard" style="display: none;">
-            <h2>Owner Dashboard</h2>
-            
-            <section class="section">
-                <h3>My Stadiums</h3>
-                <button class="btn btn-primary" onclick="showAddStadiumModal()">Add Stadium</button>
-                <div id="stadiumsList" class="stadiums-container"></div>
-            </section>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul class="list-unstyled">
+                    <li><a href="dashboard.html" class="nav-link active">
+                        <i class="bi bi-house-door me-2"></i> Home
+                    </a></li>
+                    <li><a href="booking.html" class="nav-link">
+                        <i class="bi bi-calendar-check me-2"></i> Booking
+                    </a></li>
+                    <li id="availabilityNavItem" style="display: none;"><a href="availability.html" class="nav-link">
+                        <i class="bi bi-calendar-event me-2"></i> Availability
+                    </a></li>
+                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
+                        <i class="bi bi-clipboard-check me-2"></i> Requests
+                    </a></li>
+                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
+                        <i class="bi bi-credit-card me-2"></i> Payments
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
 
-            <section class="section">
-                <h3>My Bookings</h3>
-                <div id="ownerBookings" class="table-container"></div>
-            </section>
-        </div>
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <div id="ownerDashboard" style="display: none;">
+                <!-- Home Section -->
+                <div id="homeSection" class="dashboard-section">
+                    <h2>Owner Dashboard</h2>
+                    
+                    <section class="section">
+                        <h3>My Stadiums</h3>
+                        <button class="btn btn-primary" onclick="showAddStadiumModal()">Add Stadium</button>
+                        <div id="stadiumsList" class="stadiums-container"></div>
+                    </section>
+                </div>
 
-        <div id="userDashboard" style="display: none;">
-            <section class="section">
-                <h2>Available Arenas</h2>
-                <p>Browse and book available arenas from all owners.</p>
-                <div id="availableArenas" class="table-container"></div>
-            </section>
-            
-            <section class="section">
-                <h2>My Bookings</h2>
-                <div id="userBookings" class="table-container"></div>
-            </section>
-        </div>
-    </main>
+                <!-- Booking Section -->
+                <div id="bookingSection" class="dashboard-section" style="display: none;">
+                    <h2>My Bookings</h2>
+                    <section class="section">
+                        <div id="ownerBookings" class="table-container"></div>
+                    </section>
+                </div>
+
+                <!-- Requests Section -->
+                <div id="requestsSection" class="dashboard-section" style="display: none;">
+                    <h2>Requests</h2>
+                    <section class="section">
+                        <div id="ownerRequests" class="table-container"></div>
+                    </section>
+                </div>
+
+                <!-- Payments Section -->
+                <div id="paymentsSection" class="dashboard-section" style="display: none;">
+                    <h2>Payments</h2>
+                    <section class="section">
+                        <p>Payments functionality coming soon.</p>
+                    </section>
+                </div>
+            </div>
+
+            <div id="userDashboard" style="display: none;">
+                <section class="section">
+                    <h2>Available Arena Slots</h2>
+                    <p>Browse and book available time slots from all owners.</p>
+                    
+                    <!-- Search Section -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label for="userAvailabilitySearch" class="form-label">Search</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="userAvailabilitySearch" 
+                                        placeholder="Search by stadium, arena, location, date, time..."
+                                        onkeyup="handleUserAvailabilitySearch(event)"
+                                        oninput="handleUserAvailabilitySearchInput(event)"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div id="userAvailabilityTable" class="table-container"></div>
+                    
+                    <!-- Pagination Footer -->
+                    <div id="userAvailabilityPagination" class="arena-table-footer"></div>
+                </section>
+            </div>
+        </main>
+    </div>
 
     <!-- Add Stadium Modal -->
     <div id="addStadiumModal" class="modal">
@@ -68,61 +138,151 @@
     </div>
 
     <!-- Add Arena Modal -->
-    <div id="addArenaModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeAddArenaModal()">&times;</span>
-            <h3>Add Arena</h3>
-            <form id="addArenaForm">
-                <input type="hidden" id="arenaStadiumId">
-                <div class="form-group">
-                    <label>Arena Name</label>
-                    <input type="text" id="arenaName" required>
+    <div class="modal fade" id="addArenaModal" tabindex="-1" aria-labelledby="addArenaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addArenaModalLabel">Add Arena</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="form-group">
-                    <label>Sport Type</label>
-                    <select id="arenaSportType" required>
-                        <option value="">Select Sport Type</option>
-                        <option value="soccer">Soccer</option>
-                        <option value="cricket">Cricket</option>
-                        <option value="hockey">Hockey</option>
-                        <option value="tennis">Tennis</option>
-                        <option value="basketball">Basketball</option>
-                    </select>
+                <div class="modal-body">
+                    <form id="addArenaForm">
+                        <input type="hidden" id="arenaStadiumId">
+                        <div class="mb-3">
+                            <label class="form-label">Arena Name</label>
+                            <input type="text" class="form-control" id="arenaName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sport Type</label>
+                            <select class="form-select" id="arenaSportType" required>
+                                <option value="">Select Sport Type</option>
+                                <option value="soccer">Soccer</option>
+                                <option value="cricket">Cricket</option>
+                                <option value="hockey">Hockey</option>
+                                <option value="tennis">Tennis</option>
+                                <option value="basketball">Basketball</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Capacity</label>
+                            <select class="form-select" id="arenaCapacity" required>
+                                <option value="">Select Capacity</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="30">30</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Slot Duration (minutes)</label>
+                            <select class="form-select" id="arenaSlotDuration" required>
+                                <option value="">Select Duration</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                                <option value="60">60</option>
+                                <option value="90">90</option>
+                                <option value="120">120</option>
+                                <option value="150">150</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price per Slot</label>
+                            <input type="number" class="form-control" id="arenaPrice" required min="0" step="0.01">
+                        </div>
+                        <div class="modal-footer px-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Arena</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>Capacity</label>
-                    <select id="arenaCapacity" required>
-                        <option value="">Select Capacity</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Slot Duration (minutes)</label>
-                    <select id="arenaSlotDuration" required>
-                        <option value="">Select Duration</option>
-                        <option value="30">30</option>
-                        <option value="45">45</option>
-                        <option value="60">60</option>
-                        <option value="90">90</option>
-                        <option value="120">120</option>
-                        <option value="150">150</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Price per Slot</label>
-                    <input type="number" id="arenaPrice" required min="0" step="0.01">
-                </div>
-                <button type="submit" class="btn btn-primary">Add Arena</button>
-            </form>
+            </div>
         </div>
     </div>
 
+    <!-- Booking Confirmation Modal -->
+    <div class="modal fade" id="bookingConfirmationModal" tabindex="-1" aria-labelledby="bookingConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingConfirmationModalLabel">Confirm Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingConfirmationForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Stadium Name:</label>
+                            <p id="bookingStadiumName" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Arena Name:</label>
+                            <p id="bookingArenaName" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date:</label>
+                            <p id="bookingDate" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Start Time:</label>
+                            <p id="bookingStartTime" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">End Time:</label>
+                            <p id="bookingEndTime" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Total Duration:</label>
+                            <p id="bookingTotalDuration" class="mb-0"></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Price:</label>
+                            <p id="bookingPrice" class="mb-0"></p>
+                        </div>
+                        <input type="hidden" id="bookingAvailabilityId">
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Confirm Booking</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Set Availability Modal -->
+    <div class="modal fade" id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="availabilityModalLabel">Set Arena Availability</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="availabilityForm">
+                        <input type="hidden" id="availabilityArenaId">
+                        <div id="availabilitySlots">
+                            <!-- Availability slots will be added here dynamically -->
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary" id="addDateBtn" onclick="addAvailabilitySlot()">
+                                <i class="bi bi-plus-circle me-2"></i>Add More Date
+                            </button>
+                        </div>
+                        <div class="modal-footer px-0 mt-4">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Availability</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
     <script src="../js/dashboard.js"></script>
 </body>
 </html>

@@ -154,10 +154,25 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 
 	if params.SearchText != "" {
 		searchPattern := "%" + params.SearchText + "%"
-		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1 AND (Name LIKE @p2 OR SportType LIKE @p2)"
+		// Search across all columns: Name, SportType, Capacity, SlotDuration, Price, CreatedAt (as string)
+		// Note: For numeric columns (Capacity, SlotDuration, Price), we'll search the string representation
+		// For CreatedAt, we'll search formatted date string
+		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1 AND (" +
+			"Name LIKE @p2 OR " +
+			"SportType LIKE @p2 OR " +
+			"CAST(Capacity AS VARCHAR) LIKE @p2 OR " +
+			"CAST(SlotDuration AS VARCHAR) LIKE @p2 OR " +
+			"CAST(Price AS VARCHAR) LIKE @p2 OR " +
+			"CONVERT(VARCHAR, CreatedAt, 120) LIKE @p2)"
 		countArgs = []interface{}{params.StadiumID, searchPattern}
 
-		query = fmt.Sprintf("SELECT ArenaId, StadiumId, Name, SportType, Capacity, SlotDuration, Price, CreatedAt FROM Arenas WHERE StadiumId = @p1 AND (Name LIKE @p2 OR SportType LIKE @p2) ORDER BY %s %s OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY", sortColumn, sortDirection)
+		query = fmt.Sprintf("SELECT ArenaId, StadiumId, Name, SportType, Capacity, SlotDuration, Price, CreatedAt FROM Arenas WHERE StadiumId = @p1 AND ("+
+			"Name LIKE @p2 OR "+
+			"SportType LIKE @p2 OR "+
+			"CAST(Capacity AS VARCHAR) LIKE @p2 OR "+
+			"CAST(SlotDuration AS VARCHAR) LIKE @p2 OR "+
+			"CAST(Price AS VARCHAR) LIKE @p2 OR "+
+			"CONVERT(VARCHAR, CreatedAt, 120) LIKE @p2) ORDER BY %s %s OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY", sortColumn, sortDirection)
 		queryArgs = []interface{}{params.StadiumID, searchPattern, offset, params.PageSize}
 	} else {
 		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1"

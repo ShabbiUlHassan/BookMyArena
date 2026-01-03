@@ -51,19 +51,34 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/arenas/{id}", controllers.DeleteArena).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/stadiums/{stadiumId}/arenas", controllers.GetArenasByStadium).Methods("GET", "OPTIONS")
 
+	// Availability routes
+	api.HandleFunc("/arenas/{id}/availability", controllers.CreateArenaAvailability).Methods("POST", "OPTIONS")
+	api.HandleFunc("/arenas/{id}/availability", controllers.GetArenaAvailabilities).Methods("GET", "OPTIONS")
+	api.HandleFunc("/availability", controllers.GetOwnerAvailabilities).Methods("GET", "OPTIONS")
+	api.HandleFunc("/availability/{id}", controllers.DeleteArenaAvailability).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/availability/user", controllers.GetUserAvailabilities).Methods("GET", "OPTIONS")
+
 	// Booking routes
 	api.HandleFunc("/bookings", controllers.CreateBooking).Methods("POST", "OPTIONS")
 	api.HandleFunc("/bookings", controllers.GetBookings).Methods("GET", "OPTIONS")
 	api.HandleFunc("/bookings/{id}/cancel", controllers.CancelBooking).Methods("PUT", "DELETE", "OPTIONS")
 	api.HandleFunc("/bookings/{id}/status", controllers.UpdateBookingStatus).Methods("PUT", "OPTIONS")
 
+	// Booking Request routes
+	api.HandleFunc("/booking-requests/details", controllers.GetBookingRequestDetails).Methods("GET", "OPTIONS")
+	api.HandleFunc("/booking-requests", controllers.CreateBookingRequest).Methods("POST", "OPTIONS")
+	api.HandleFunc("/booking-requests/user", controllers.GetUserBookingRequests).Methods("GET", "OPTIONS")
+	api.HandleFunc("/booking-requests/owner", controllers.GetOwnerBookingRequests).Methods("GET", "OPTIONS")
+	api.HandleFunc("/booking-requests/{id}", controllers.DeleteBookingRequest).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/booking-requests/{id}/status", controllers.UpdateBookingRequestStatus).Methods("PUT", "OPTIONS")
+
 	// Serve static files (frontend)
 	fileServer := http.FileServer(http.Dir("./frontend/"))
 	r.PathPrefix("/frontend/").Handler(http.StripPrefix("/frontend/", fileServer))
 
-	// Serve index.html for root
+	// Redirect root to login page
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./index.html")
+		http.Redirect(w, r, "/frontend/pages/login.html", http.StatusSeeOther)
 	})
 
 	return r

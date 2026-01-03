@@ -4,44 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Arenas - BookMyArena</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="logo">BookMyArena</h1>
-            <div class="nav-links">
-                <a href="dashboard.html">Dashboard</a>
-                <a href="#" id="logoutLink">Logout</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="dashboard.html">BookMyArena</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="dashboard.html">Dashboard</a>
+                <a class="nav-link" href="#" id="logoutLink">Logout</a>
             </div>
         </div>
     </nav>
 
-    <main class="container">
-        <h2>Available Arenas</h2>
-        <p>Browse all available arenas from all owners. Use filters to narrow down your search.</p>
+    <main class="container mt-4">
+        <h2 class="mb-3">Available Arenas</h2>
+        <p class="text-muted mb-4">Browse all available arenas from all owners. Use filters to narrow down your search.</p>
         
-        <div class="search-filters">
-            <div class="form-group">
-                <label for="locationFilter">Location</label>
-                <input type="text" id="locationFilter" placeholder="City or area" onkeyup="if(event.key==='Enter') searchArenas()">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="locationFilter" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="locationFilter" placeholder="City or area" onkeyup="if(event.key==='Enter') searchArenas()">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="sportFilter" class="form-label">Sport Type</label>
+                        <input type="text" class="form-control" id="sportFilter" placeholder="Tennis, Basketball, etc." onkeyup="if(event.key==='Enter') searchArenas()">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="dateFilter" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>
+                    
+                    <div class="col-12">
+                        <button class="btn btn-primary" onclick="searchArenas()">
+                            <i class="bi bi-search me-2"></i>Search
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadAllArenas()">
+                            <i class="bi bi-list-ul me-2"></i>Show All
+                        </button>
+                    </div>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="sportFilter">Sport Type</label>
-                <input type="text" id="sportFilter" placeholder="Tennis, Basketball, etc." onkeyup="if(event.key==='Enter') searchArenas()">
-            </div>
-            
-            <div class="form-group">
-                <label for="dateFilter">Date</label>
-                <input type="date" id="dateFilter">
-            </div>
-            
-            <button class="btn btn-primary" onclick="searchArenas()">Search</button>
-            <button class="btn btn-secondary" onclick="loadAllArenas()">Show All</button>
         </div>
 
-        <div id="searchResults" class="cards-grid"></div>
+        <div id="searchResults" class="table-container"></div>
     </main>
 
     <!-- Booking Modal -->
@@ -69,6 +83,8 @@
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/booking.js"></script>

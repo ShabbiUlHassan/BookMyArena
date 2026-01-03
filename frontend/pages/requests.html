@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requests - BookMyArena</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.html">BookMyArena</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <a class="nav-link" href="#" onclick="logout(); return false;">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar bg-dark" id="sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="bi bi-house-door me-2"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="booking.html">
+                            <i class="bi bi-calendar-check me-2"></i>Booking
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="requests.html">
+                            <i class="bi bi-envelope me-2"></i>Requests
+                        </a>
+                    </li>
+                    <li class="nav-item" id="paymentsNavItem" style="display: none;">
+                        <a class="nav-link" href="payments.html">
+                            <i class="bi bi-credit-card me-2"></i>Payments
+                        </a>
+                    </li>
+                    <li class="nav-item" id="availabilityNavItem" style="display: none;">
+                        <a class="nav-link" href="availability.html">
+                            <i class="bi bi-clock me-2"></i>Availability
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 col-lg-10 dashboard-content">
+                <section class="section">
+                    <h2>Booking Requests</h2>
+                    <p>Review and manage incoming booking requests for your arenas.</p>
+                    
+                    <!-- Search Section -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label for="ownerBookingRequestSearch" class="form-label">Search</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="ownerBookingRequestSearch" 
+                                        placeholder="Search by stadium, arena, location, date, time, status..."
+                                        onkeyup="handleOwnerBookingRequestSearch(event)"
+                                        oninput="handleOwnerBookingRequestSearchInput(event)"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div id="ownerBookingRequestTable" class="table-container"></div>
+                    
+                    <!-- Pagination Footer -->
+                    <div id="ownerBookingRequestPagination" class="arena-table-footer"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/navigation.js"></script>
+    <script>
+        // Owner Booking Requests State
+        let ownerBookingRequestState = {
+            pageNumber: 1,
+            pageSize: 10,
+            searchText: '',
+            sortColumn: 'CreatedDate',
+            sortDirection: 'DESC'
+        };
+        let ownerBookingRequestSearchTimeout = null;
+
+        async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection) {
+            const tableContainer = document.getElementById('ownerBookingRequestTable');
+            const paginationContainer = document.getElementById('ownerBookingRequestPagination');
+            
+            if (!tableContainer) return;
+
+            tableContainer.innerHTML = '<p>Loading booking requests...</p>';
+
+            try {
+                const result = await API.getOwnerBookingRequests({
+                    searchText,
+                    sortColumn,
+                    sortDirection,
+                    pageNumber,
+                    pageSize
+                });
+
+                console.log('Loaded owner booking requests:', result);
+
+                ownerBookingRequestState = {
+                    pageNumber: result.pageNumber || 1,
+                    pageSize: result.pageSize || 10,
+                    searchText: searchText,
+                    sortColumn: sortColumn,
+                    sortDirection: sortDirection,
+                    totalCount: result.totalCount || 0,
+                    totalPages: result.totalPages || 0
+                };
+
+                displayOwnerBookingRequests(result);
+            } catch (error) {
+                console.error('Error loading booking requests:', error);
+                tableContainer.innerHTML = `<p class="error-message">Error loading booking requests: ${error.message}</p>`;
+            }
+        }
+
+        function displayOwnerBookingRequests(result) {
+            const tableContainer = document.getElementById('ownerBookingRequestTable');
+            const paginationContainer = document.getElementById('ownerBookingRequestPagination');
+            
+            if (!tableContainer) return;
+
+            if (!result || !result.bookingRequests || result.bookingRequests.length === 0) {
+                tableContainer.innerHTML = '<p>No booking requests found.</p>';
+                if (paginationContainer) paginationContainer.innerHTML = '';
+                return;
+            }
+
+            const { sortColumn, sortDirection } = ownerBookingRequestState;
+
+            const getSortIcon = (col) => {
+                if (col !== sortColumn) {
+                    return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
+                }
+                return sortDirection === 'ASC' 
+                    ? '<i class="bi bi-arrow-up sort-icon" style="opacity: 1;"></i>' 
+                    : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
+            };
+
+            const getSortHandler = (col) => {
+                const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
+                return `handleOwnerBookingRequestSort('${col}', '${newDirection}')`;
+            };
+
+            const table = `
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Location')}">Location ${getSortIcon('Location')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
+                            <th>Total Duration (Minutes)</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+                            <th class="sortable-header" onclick="${getSortHandler('Status')}">Status ${getSortIcon('Status')}</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${result.bookingRequests.map(br => {
+                            const stadiumName = br.stadiumName || 'N/A';
+                            const arenaName = br.arenaName || 'N/A';
+                            const location = br.location || 'N/A';
+                            const date = br.date || 'N/A';
+                            const startTime = br.startTime || 'N/A';
+                            const endTime = br.endTime || 'N/A';
+                            const totalDuration = br.totalDuration || 0;
+                            const price = br.price ? br.price.toFixed(2) : '0.00';
+                            const status = br.status || 'N/A';
+                            const bookingRequestId = br.bookingRequestId || 0;
+                            const canAction = status === 'Pending';
+                            
+                            return `
+                            <tr>
+                                <td>${stadiumName}</td>
+                                <td>${arenaName}</td>
+                                <td>${location}</td>
+                                <td>${date}</td>
+                                <td>${startTime}</td>
+                                <td>${endTime}</td>
+                                <td>${totalDuration}</td>
+                            <td>$${price}</td>
+                            <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
+                            <td>
+                                    <button class="btn btn-sm btn-success me-2 ${!canAction ? 'disabled' : ''}" 
+                                            onclick="${canAction ? `acceptBookingRequest(${bookingRequestId})` : 'return false;'}" 
+                                            ${!canAction ? 'disabled title="Can only accept pending requests"' : ''}>
+                                        Accept
+                                    </button>
+                                    <button class="btn btn-sm btn-danger ${!canAction ? 'disabled' : ''}" 
+                                            onclick="${canAction ? `declineBookingRequest(${bookingRequestId})` : 'return false;'}" 
+                                            ${!canAction ? 'disabled title="Can only decline pending requests"' : ''}>
+                                        Decline
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            tableContainer.innerHTML = table;
+
+            // Display pagination
+            if (paginationContainer && result.totalPages > 0) {
+                paginationContainer.innerHTML = `
+                    <div class="pagination-info">
+                        Showing ${((ownerBookingRequestState.pageNumber - 1) * ownerBookingRequestState.pageSize) + 1} to ${Math.min(ownerBookingRequestState.pageNumber * ownerBookingRequestState.pageSize, ownerBookingRequestState.totalCount)} of ${ownerBookingRequestState.totalCount} records
+                        <select class="page-size-select" onchange="handleOwnerBookingRequestPageSizeChange(this.value)">
+                            <option value="10" ${ownerBookingRequestState.pageSize === 10 ? 'selected' : ''}>10 per page</option>
+                            <option value="25" ${ownerBookingRequestState.pageSize === 25 ? 'selected' : ''}>25 per page</option>
+                            <option value="50" ${ownerBookingRequestState.pageSize === 50 ? 'selected' : ''}>50 per page</option>
+                            <option value="100" ${ownerBookingRequestState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
+                        </select>
+                    </div>
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber - 1}); return false;">Previous</a>
+                            </li>
+                            ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
+                                <li class="page-item ${page === ownerBookingRequestState.pageNumber ? 'active' : ''}">
+                                    <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${page}); return false;">${page}</a>
+                                </li>
+                            `).join('')}
+                            <li class="page-item ${ownerBookingRequestState.pageNumber === ownerBookingRequestState.totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber + 1}); return false;">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                `;
+            } else if (paginationContainer) {
+                paginationContainer.innerHTML = '';
+            }
+        }
+
+        function handleOwnerBookingRequestSearch(event) {
+            if (event.key === 'Enter') {
+                const searchInput = document.getElementById('ownerBookingRequestSearch');
+                const searchText = searchInput ? searchInput.value : '';
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            }
+        }
+
+        function handleOwnerBookingRequestSearchInput(event) {
+            clearTimeout(ownerBookingRequestSearchTimeout);
+            ownerBookingRequestSearchTimeout = setTimeout(() => {
+                const searchInput = document.getElementById('ownerBookingRequestSearch');
+                const searchText = searchInput ? searchInput.value : '';
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            }, 500);
+        }
+
+        function handleOwnerBookingRequestSort(sortColumn, sortDirection) {
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, sortColumn, sortDirection);
+        }
+
+        function handleOwnerBookingRequestPageChange(pageNumber) {
+            loadOwnerBookingRequests(pageNumber, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+        }
+
+        function handleOwnerBookingRequestPageSizeChange(pageSize) {
+            loadOwnerBookingRequests(1, parseInt(pageSize), ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+        }
+
+        let pendingAction = null; // Store the pending action (bookingRequestId and status)
+
+        function showConfirmationModal(bookingRequestId, status, actionType) {
+            pendingAction = {
+                bookingRequestId: bookingRequestId,
+                status: status,
+                actionType: actionType
+            };
+
+            const modalElement = document.getElementById('confirmationModal');
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            modal.show();
+        }
+
+        async function acceptBookingRequest(bookingRequestId) {
+            showConfirmationModal(bookingRequestId, 'Booked', 'accept');
+        }
+
+        async function declineBookingRequest(bookingRequestId) {
+            showConfirmationModal(bookingRequestId, 'Declined', 'decline');
+        }
+
+        async function executePendingAction() {
+            if (!pendingAction) {
+                return;
+            }
+
+            const { bookingRequestId, status, actionType } = pendingAction;
+            
+            // Close modal
+            const modalElement = document.getElementById('confirmationModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+
+            try {
+                await API.updateBookingRequestStatus(bookingRequestId, status);
+                const message = actionType === 'accept' 
+                    ? 'Booking request accepted successfully!'
+                    : 'Booking request declined successfully!';
+                alert(message);
+                await loadOwnerBookingRequests();
+            } catch (error) {
+                const errorMessage = actionType === 'accept'
+                    ? 'Error accepting booking request: '
+                    : 'Error declining booking request: ';
+                alert(errorMessage + error.message);
+            } finally {
+                pendingAction = null;
+            }
+        }
+
+        // Make functions globally accessible
+        window.handleOwnerBookingRequestSearch = handleOwnerBookingRequestSearch;
+        window.handleOwnerBookingRequestSearchInput = handleOwnerBookingRequestSearchInput;
+        window.handleOwnerBookingRequestSort = handleOwnerBookingRequestSort;
+        window.handleOwnerBookingRequestPageChange = handleOwnerBookingRequestPageChange;
+        window.handleOwnerBookingRequestPageSizeChange = handleOwnerBookingRequestPageSizeChange;
+        window.acceptBookingRequest = acceptBookingRequest;
+        window.declineBookingRequest = declineBookingRequest;
+        window.executePendingAction = executePendingAction;
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set up confirmation button handler
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', executePendingAction);
+            }
+            // Check authentication
+            const user = await API.getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Only owners can access this page
+            if (user.role !== 'Owner') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            await loadOwnerBookingRequests();
+        });
+    </script>
+</body>
+</html>
