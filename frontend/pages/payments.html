@@ -50,13 +50,15 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="dateFilterEnd" class="form-label">To Month (Optional)</label>
-                                <input 
-                                    type="month" 
-                                    class="form-control" 
-                                    id="dateFilterEnd"
-                                    placeholder="Select End Month"
-                                    onchange="handleDateFilterChange()"
-                                >
+                                <div style="position: relative;">
+                                    <input 
+                                        type="month" 
+                                        class="form-control" 
+                                        id="dateFilterEnd"
+                                        onchange="handleDateFilterChange(); toggleMonthPlaceholder();"
+                                    >
+                                    <span id="monthPlaceholder" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #999; background: white; padding: 0 4px;">Select End Month</span>
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-secondary" onclick="resetDateFilter()">

@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         dateFilterStart.value = currentMonth;
     }
     
+    // Initialize placeholder visibility
+    toggleMonthPlaceholder();
+    
     // Set date range for current month
     paidState.startDate = currentMonth + '-01';
     payableState.startDate = currentMonth + '-01';
@@ -171,6 +174,7 @@ function resetDateFilter() {
     const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     document.getElementById('dateFilterStart').value = currentMonth;
     document.getElementById('dateFilterEnd').value = '';
+    toggleMonthPlaceholder();
     
     paidState.startDate = currentMonth + '-01';
     payableState.startDate = currentMonth + '-01';
@@ -183,6 +187,14 @@ function resetDateFilter() {
     
     loadPaidPayments(1);
     loadPayablePayments(1);
+}
+
+function toggleMonthPlaceholder() {
+    const input = document.getElementById('dateFilterEnd');
+    const placeholder = document.getElementById('monthPlaceholder');
+    if (input && placeholder) {
+        placeholder.style.display = input.value ? 'none' : 'block';
+    }
 }
 
 // Tab switching
@@ -279,8 +291,8 @@ function displayPaidPayments(result) {
     
     if (userRole === 'Owner') {
         tableHeaders += `
-        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Book Name ${getSortIcon('BookerName')}</th>
-        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Book Email ${getSortIcon('BookerEmail')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Booker Name ${getSortIcon('BookerName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Booker Email ${getSortIcon('BookerEmail')}</th>
         `;
     }
 
@@ -494,8 +506,8 @@ function displayPayablePayments(result) {
     
     if (userRole === 'Owner') {
         tableHeaders += `
-        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Book Name ${getSortIcon('BookerName')}</th>
-        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Book Email ${getSortIcon('BookerEmail')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Booker Name ${getSortIcon('BookerName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Booker Email ${getSortIcon('BookerEmail')}</th>
         `;
     } else {
         tableHeaders += `<th>Actions</th>`;
@@ -727,3 +739,4 @@ window.handlePayableSearch = handlePayableSearch;
 window.handlePayableSearchInput = handlePayableSearchInput;
 window.showPaymentConfirmation = showPaymentConfirmation;
 window.confirmPayment = confirmPayment;
+window.toggleMonthPlaceholder = toggleMonthPlaceholder;
