@@ -350,7 +350,7 @@ async function deleteAvailability(availabilityId) {
         await API.deleteArenaAvailability(availabilityId);
         await loadAvailabilityTable();
     } catch (error) {
-        alert('Error deleting availability: ' + error.message);
+        showAlertModal('Error deleting availability: ' + error.message, 'error');
     }
 }
 

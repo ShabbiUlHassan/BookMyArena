@@ -20,11 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             await API.createBooking(bookingData);
-            alert('Booking created successfully!');
+            showAlertModal('Booking created successfully!', 'success');
             closeBookingModal();
             loadAllArenas();
         } catch (error) {
-            alert('Error: ' + error.message);
+            showAlertModal('Error: ' + error.message, 'error');
         }
     });
 });
@@ -132,7 +132,7 @@ async function showBookingModal(arenaId) {
         const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
         modal.show();
     } catch (error) {
-        alert('Error: ' + error.message);
+        showAlertModal('Error: ' + error.message, 'error');
     }
 }
 

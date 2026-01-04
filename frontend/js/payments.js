@@ -550,7 +550,7 @@ function showPaymentConfirmation(paymentId, stadiumName, arenaName, date, startT
 
 async function confirmPayment() {
     if (!currentPaymentId) {
-        alert('Payment ID is missing');
+        showAlertModal('Payment ID is missing', 'warning');
         return;
     }
 
@@ -572,10 +572,10 @@ async function confirmPayment() {
         await loadPayablePayments();
         await loadPaidPayments();
         
-        alert('Payment processed successfully!');
+        showAlertModal('Payment processed successfully!', 'success');
     } catch (error) {
         console.error('Error processing payment:', error);
-        alert('Error processing payment: ' + error.message);
+        showAlertModal('Error processing payment: ' + error.message, 'error');
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Confirm Payment';
     } finally {

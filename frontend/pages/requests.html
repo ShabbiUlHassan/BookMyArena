@@ -101,6 +101,7 @@
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
+    <script src="../js/alertModal.js"></script>
     <script>
         // Owner Booking Requests State
         let ownerBookingRequestState = {
@@ -470,10 +471,10 @@
 
             try {
                 await API.deleteBookingRequest(bookingRequestId);
-                alert('Booking request deleted successfully!');
+                showAlertModal('Booking request deleted successfully!', 'success');
                 await loadOwnerBookingRequests();
             } catch (error) {
-                alert('Error deleting booking request: ' + error.message);
+                showAlertModal('Error deleting booking request: ' + error.message, 'error');
             }
         }
 
@@ -496,13 +497,13 @@
                 const message = actionType === 'accept' 
                     ? 'Booking request accepted successfully!'
                     : 'Booking request declined successfully!';
-                alert(message);
+                showAlertModal(message, 'success');
                 await loadOwnerBookingRequests();
             } catch (error) {
                 const errorMessage = actionType === 'accept'
                     ? 'Error accepting booking request: '
                     : 'Error declining booking request: ';
-                alert(errorMessage + error.message);
+                showAlertModal(errorMessage + error.message, 'error');
             } finally {
                 pendingAction = null;
             }

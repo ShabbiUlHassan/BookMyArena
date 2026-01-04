@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeAddStadiumModal();
             loadOwnerDashboard();
         } catch (error) {
-            alert('Error: ' + error.message);
+            showAlertModal('Error: ' + error.message, 'error');
         }
     });
 
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const state = stadiumArenaState[stadiumId] || {};
             loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
         } catch (error) {
-            alert('Error: ' + error.message);
+            showAlertModal('Error: ' + error.message, 'error');
         }
     });
 
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const slots = document.querySelectorAll('.availability-slot');
             
             if (slots.length === 0) {
-                alert('Please add at least one availability slot');
+                showAlertModal('Please add at least one availability slot', 'warning');
                 return;
             }
             
@@ -92,14 +92,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const endTime = slot.querySelector('.availability-end-time').value;
                 
                 if (!date || !startTime || !endTime) {
-                    alert(`Date Entry ${index + 1} is incomplete`);
+                    showAlertModal(`Date Entry ${index + 1} is incomplete`, 'warning');
                     hasError = true;
                     return;
                 }
                 
                 // Validate start time is before end time
                 if (startTime >= endTime) {
-                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
+                    showAlertModal(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`, 'warning');
                     hasError = true;
                     return;
                 }
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const diffMinutes = endTotalMinutes - startTotalMinutes;
                 
                 if (diffMinutes < 60) {
-                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
+                    showAlertModal(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`, 'warning');
                     hasError = true;
                     return;
                 }
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     availabilities: availabilities
                 });
                 
-                alert('Availability created successfully!');
+                showAlertModal('Availability created successfully!', 'success');
                 
                 // Close modal
                 const modalElement = document.getElementById('availabilityModal');
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     availabilitySlotCount = 0;
                 }, 300);
             } catch (error) {
-                alert('Error creating availability: ' + error.message);
+                showAlertModal('Error creating availability: ' + error.message, 'error');
             }
         });
     }
@@ -178,14 +178,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const availabilityId = document.getElementById('bookingAvailabilityId').value;
             
             if (!availabilityId) {
-                alert('Availability ID is missing');
+                showAlertModal('Availability ID is missing', 'warning');
                 return;
             }
             
             try {
                 await API.createBookingRequest(availabilityId);
                 
-                alert('Booking request created successfully!');
+                showAlertModal('Booking request created successfully!', 'success');
                 
                 // Close modal
                 const modalElement = document.getElementById('bookingConfirmationModal');
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Reload the availability table to reflect the booking
                 await loadUserAvailabilityTable();
             } catch (error) {
-                alert('Error creating booking request: ' + error.message);
+                showAlertModal('Error creating booking request: ' + error.message, 'error');
             }
         });
     }
@@ -569,7 +569,7 @@ async function updateBookingStatus(bookingId, status) {
             }
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        showAlertModal('Error: ' + error.message, 'error');
     }
 }
 
@@ -752,7 +752,7 @@ async function cancelUserBooking(bookingId) {
         await API.cancelBooking(bookingId);
         loadUserBookings();
     } catch (error) {
-        alert('Error: ' + error.message);
+        showAlertModal('Error: ' + error.message, 'error');
     }
 }
 
@@ -1019,7 +1019,7 @@ async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, en
         });
         modal.show();
     } catch (error) {
-        alert('Error loading booking details: ' + error.message);
+        showAlertModal('Error loading booking details: ' + error.message, 'error');
     }
 }
 
@@ -1157,7 +1157,7 @@ async function editArena(arenaId, stadiumId) {
         });
         modal.show();
     } catch (error) {
-        alert('Error loading arena: ' + error.message);
+        showAlertModal('Error loading arena: ' + error.message, 'error');
     }
 }
 
@@ -1172,7 +1172,7 @@ async function deleteArena(arenaId, stadiumId) {
         const state = stadiumArenaState[stadiumId] || {};
         loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
     } catch (error) {
-        alert('Error deleting arena: ' + error.message);
+        showAlertModal('Error deleting arena: ' + error.message, 'error');
     }
 }
 
@@ -1206,7 +1206,7 @@ function showAvailabilityModal(arenaId, stadiumId) {
 
 function addAvailabilitySlot() {
     if (availabilitySlotCount >= 10) {
-        alert('Maximum 10 availability slots allowed');
+        showAlertModal('Maximum 10 availability slots allowed', 'warning');
         return;
     }
     
