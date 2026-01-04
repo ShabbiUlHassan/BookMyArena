@@ -490,7 +490,48 @@ small {
     outline: none;
 }
 
-.form-control:hover {
+/* Availability form fields - ensure consistent styling */
+.availability-date {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.availability-start-time.form-select,
+.availability-end-time.form-select {
+    width: 100%;
+    padding: 10px 12px;
+    padding-right: 2.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+/* Disabled select options styling */
+.availability-end-time option:disabled {
+    color: #999;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.end-time-validation {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    color: #dc3545;
+}
+
+.form-control:hover,
+.availability-start-time.form-select:hover,
+.availability-end-time.form-select:hover {
     border-color: #adb5bd;
 }
 

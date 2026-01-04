@@ -97,13 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 
-                // Validate start time is before end time
-                if (startTime >= endTime) {
-                    showAlertModal(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`, 'warning');
-                    hasError = true;
-                    return;
-                }
-                
                 // Validate end time is at least 60 minutes after start time
                 const [startHours, startMinutes] = startTime.split(':').map(Number);
                 const [endHours, endMinutes] = endTime.split(':').map(Number);
@@ -1232,15 +1225,19 @@ function addAvailabilitySlot() {
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Date</label>
-                    <input type="date" class="form-control availability-date" required min="${minDate}" value="${todayStr}">
+                    <input type="date" class="form-control availability-date" required min="${minDate}" value="${todayStr}" placeholder="Select Date">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Start Time</label>
-                    <input type="time" class="form-control availability-start-time" required>
+                    <select class="form-select availability-start-time" required>
+                        <option value="">Select Start Time</option>
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">End Time</label>
-                    <input type="time" class="form-control availability-end-time" required>
+                    <select class="form-select availability-end-time" required>
+                        <option value="">Select End Time</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -1250,12 +1247,28 @@ function addAvailabilitySlot() {
     
     // Add event listeners for time validation
     const slotElement = document.getElementById(slotId);
-    const startTimeInput = slotElement.querySelector('.availability-start-time');
-    const endTimeInput = slotElement.querySelector('.availability-end-time');
+    const startTimeSelect = slotElement.querySelector('.availability-start-time');
+    const endTimeSelect = slotElement.querySelector('.availability-end-time');
     
-    // When start time changes, update end time min value
-    startTimeInput.addEventListener('change', function() {
-        updateEndTimeMin(slotElement);
+    // Generate and populate both Start Time and End Time dropdown options
+    const timeOptions = generateTimeOptions();
+    timeOptions.forEach(time => {
+        // Add to Start Time dropdown
+        const startOption = document.createElement('option');
+        startOption.value = time;
+        startOption.textContent = time;
+        startTimeSelect.appendChild(startOption);
+        
+        // Add to End Time dropdown
+        const endOption = document.createElement('option');
+        endOption.value = time;
+        endOption.textContent = time;
+        endTimeSelect.appendChild(endOption);
+    });
+    
+    // When start time changes, update end time options
+    startTimeSelect.addEventListener('change', function() {
+        updateEndTimeOptions(slotElement);
     });
     
     // Update add button visibility
@@ -1267,34 +1280,90 @@ function addAvailabilitySlot() {
     }
 }
 
-function updateEndTimeMin(slotElement) {
-    const startTimeInput = slotElement.querySelector('.availability-start-time');
-    const endTimeInput = slotElement.querySelector('.availability-end-time');
+// Generate time options for dropdown (every 15 minutes from 00:00 to 23:59)
+function generateTimeOptions() {
+    const options = [];
+    for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+            const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            options.push(timeStr);
+        }
+    }
+    return options;
+}
+
+// Update End Time dropdown options - disable times before Start Time + 60 minutes
+function updateEndTimeOptions(slotElement) {
+    const startTimeSelect = slotElement.querySelector('.availability-start-time');
+    const endTimeSelect = slotElement.querySelector('.availability-end-time');
+    const validationMsg = slotElement.querySelector('.end-time-validation');
     
-    if (!startTimeInput.value) {
-        endTimeInput.removeAttribute('min');
+    // Remove existing validation message if present
+    if (validationMsg) {
+        validationMsg.remove();
+    }
+    
+    if (!startTimeSelect.value) {
+        // If no start time selected, enable all options
+        Array.from(endTimeSelect.options).forEach(option => {
+            if (option.value !== '') {
+                option.disabled = false;
+                option.style.color = '';
+                option.style.opacity = '1';
+            }
+        });
+        // Reset end time selection
+        endTimeSelect.value = '';
         return;
     }
     
     // Parse start time
-    const [startHours, startMinutes] = startTimeInput.value.split(':').map(Number);
+    const [startHours, startMinutes] = startTimeSelect.value.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
     
-    // Add 60 minutes
-    const startDate = new Date();
-    startDate.setHours(startHours, startMinutes, 0, 0);
-    startDate.setMinutes(startDate.getMinutes() + 60);
+    // Calculate minimum allowed end time (Start Time + 60 minutes)
+    const minEndTotalMinutes = startTotalMinutes + 60;
     
-    // Format as HH:MM for the min attribute
-    const minHours = String(startDate.getHours()).padStart(2, '0');
-    const minMinutes = String(startDate.getMinutes()).padStart(2, '0');
-    const minTime = `${minHours}:${minMinutes}`;
+    // Get current end time value before updating
+    const currentEndTime = endTimeSelect.value;
     
-    // Set min attribute on end time input
-    endTimeInput.setAttribute('min', minTime);
+    // Enable/disable options based on 60-minute rule
+    let hasEnabledOptions = false;
+    Array.from(endTimeSelect.options).forEach(option => {
+        if (option.value === '') {
+            // Keep the empty/default option enabled
+            return;
+        }
+        
+        const [endHours, endMinutes] = option.value.split(':').map(Number);
+        const endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes >= minEndTotalMinutes) {
+            option.disabled = false;
+            option.style.color = '';
+            option.style.opacity = '1';
+            hasEnabledOptions = true;
+        } else {
+            option.disabled = true;
+            option.style.color = '#999';
+            option.style.opacity = '0.5';
+        }
+    });
     
-    // If current end time is before the new minimum, clear it
-    if (endTimeInput.value && endTimeInput.value < minTime) {
-        endTimeInput.value = '';
+    // If current end time is now disabled, reset it
+    if (currentEndTime) {
+        const selectedOption = endTimeSelect.querySelector(`option[value="${currentEndTime}"]`);
+        if (selectedOption && selectedOption.disabled) {
+            endTimeSelect.value = '';
+        }
+    }
+    
+    // Show validation message if no options are available
+    if (!hasEnabledOptions) {
+        const validationDiv = document.createElement('div');
+        validationDiv.className = 'end-time-validation text-danger small mt-1';
+        validationDiv.textContent = 'No valid end time options available. Please select a different start time.';
+        endTimeSelect.parentElement.appendChild(validationDiv);
     }
 }
 
