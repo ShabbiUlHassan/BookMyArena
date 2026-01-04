@@ -1,4 +1,5 @@
-// Payment functionality for User role
+// Payment functionality for User and Owner roles
+let userRole = 'User'; // Will be set on initialization
 let paidState = {
     pageNumber: 1,
     pageSize: 10,
@@ -33,6 +34,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!userStr) {
         window.location.href = 'login.html';
         return;
+    }
+
+    // Detect user role
+    try {
+        const user = JSON.parse(userStr);
+        userRole = user.role || 'User';
+        
+        // Update UI labels based on role
+        if (userRole === 'Owner') {
+            // Update tab labels
+            const paidTab = document.getElementById('paid-tab');
+            const payableTab = document.getElementById('payable-tab');
+            if (paidTab) paidTab.textContent = 'Received';
+            if (payableTab) payableTab.textContent = 'Pending';
+            
+            // Update total labels - find the parent strong elements and update their first text node
+            const paidPaneStrong = document.querySelector('#paid-pane .card-body strong.text-primary');
+            const payablePaneStrong = document.querySelector('#payable-pane .card-body strong.text-primary');
+            if (paidPaneStrong) {
+                // Keep the span but update the text before it
+                const span = paidPaneStrong.querySelector('span#totalPaid');
+                if (span) {
+                    paidPaneStrong.innerHTML = 'Total Received: $<span id="totalPaid">0.00</span>';
+                }
+            }
+            if (payablePaneStrong) {
+                const span = payablePaneStrong.querySelector('span#totalPayable');
+                if (span) {
+                    payablePaneStrong.innerHTML = 'Total Pending: $<span id="totalPayable">0.00</span>';
+                }
+            }
+            
+            // Update search placeholders to include booker info
+            const paidSearch = document.getElementById('paidSearch');
+            const payableSearch = document.getElementById('payableSearch');
+            if (paidSearch) paidSearch.placeholder = 'Search by Date, Time, Stadium, Arena, Booker Name, Booker Email...';
+            if (payableSearch) payableSearch.placeholder = 'Search by Date, Time, Stadium, Arena, Booker Name, Booker Email...';
+        }
+    } catch (error) {
+        console.error('Error parsing user data:', error);
     }
 
     // Set default date filter to current month
@@ -158,16 +199,27 @@ async function loadPaidPayments(pageNumber = paidState.pageNumber, pageSize = pa
     tableContainer.innerHTML = '<p>Loading payments...</p>';
 
     try {
-        const result = await API.getUserPayments({
-            isPaid: true,
-            startDate: paidState.startDate,
-            endDate: paidState.endDate,
-            searchText: searchText,
-            sortColumn: sortColumn,
-            sortDirection: sortDirection,
-            pageNumber: pageNumber,
-            pageSize: pageSize
-        });
+        const result = userRole === 'Owner' 
+            ? await API.getOwnerPayments({
+                isPaid: true,
+                startDate: paidState.startDate,
+                endDate: paidState.endDate,
+                searchText: searchText,
+                sortColumn: sortColumn,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            })
+            : await API.getUserPayments({
+                isPaid: true,
+                startDate: paidState.startDate,
+                endDate: paidState.endDate,
+                searchText: searchText,
+                sortColumn: sortColumn,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            });
 
         paidState.pageNumber = pageNumber;
         paidState.pageSize = pageSize;
@@ -213,18 +265,30 @@ function displayPaidPayments(result) {
         return `handlePaidSort('${col}', '${newDirection}')`;
     };
 
+    // Build table headers based on role
+    let tableHeaders = `
+        <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
+        <th>Total Duration (Minutes)</th>
+        <th>IsPaid</th>
+        <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+    `;
+    
+    if (userRole === 'Owner') {
+        tableHeaders += `
+        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Book Name ${getSortIcon('BookerName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Book Email ${getSortIcon('BookerEmail')}</th>
+        `;
+    }
+
     const table = `
         <table class="table data-table">
             <thead>
                 <tr>
-                    <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
-                    <th>Total Duration (Minutes)</th>
-                    <th>IsPaid</th>
-                    <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+                    ${tableHeaders}
                 </tr>
             </thead>
             <tbody>
@@ -237,8 +301,7 @@ function displayPaidPayments(result) {
                     const totalDuration = payment.totalDuration || 0;
                     const price = payment.price ? payment.price.toFixed(2) : '0.00';
                     
-                    return `
-                    <tr>
+                    let rowCells = `
                         <td>${stadiumName}</td>
                         <td>${arenaName}</td>
                         <td>${date}</td>
@@ -247,8 +310,18 @@ function displayPaidPayments(result) {
                         <td>${totalDuration}</td>
                         <td><span class="badge status-booked">Yes</span></td>
                         <td>$${price}</td>
-                    </tr>
-                `;
+                    `;
+                    
+                    if (userRole === 'Owner') {
+                        const bookerName = payment.bookerName || 'N/A';
+                        const bookerEmail = payment.bookerEmail || 'N/A';
+                        rowCells += `
+                        <td>${bookerName}</td>
+                        <td>${bookerEmail}</td>
+                        `;
+                    }
+                    
+                    return `<tr>${rowCells}</tr>`;
                 }).join('')}
             </tbody>
         </table>
@@ -283,11 +356,20 @@ function displayPaidPayments(result) {
 function updatePaidTotal(result) {
     const totalPaidEl = document.getElementById('totalPaid');
     if (totalPaidEl) {
-        if (result.totalPaid !== undefined) {
-            totalPaidEl.textContent = result.totalPaid.toFixed(2);
-        } else if (result.payments) {
-            const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
-            totalPaidEl.textContent = total.toFixed(2);
+        if (userRole === 'Owner') {
+            if (result.totalReceived !== undefined) {
+                totalPaidEl.textContent = result.totalReceived.toFixed(2);
+            } else if (result.payments) {
+                const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
+                totalPaidEl.textContent = total.toFixed(2);
+            }
+        } else {
+            if (result.totalPaid !== undefined) {
+                totalPaidEl.textContent = result.totalPaid.toFixed(2);
+            } else if (result.payments) {
+                const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
+                totalPaidEl.textContent = total.toFixed(2);
+            }
         }
     }
 }
@@ -332,16 +414,27 @@ async function loadPayablePayments(pageNumber = payableState.pageNumber, pageSiz
     tableContainer.innerHTML = '<p>Loading payments...</p>';
 
     try {
-        const result = await API.getUserPayments({
-            isPaid: false,
-            startDate: payableState.startDate,
-            endDate: payableState.endDate,
-            searchText: searchText,
-            sortColumn: sortColumn,
-            sortDirection: sortDirection,
-            pageNumber: pageNumber,
-            pageSize: pageSize
-        });
+        const result = userRole === 'Owner'
+            ? await API.getOwnerPayments({
+                isPaid: false,
+                startDate: payableState.startDate,
+                endDate: payableState.endDate,
+                searchText: searchText,
+                sortColumn: sortColumn,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            })
+            : await API.getUserPayments({
+                isPaid: false,
+                startDate: payableState.startDate,
+                endDate: payableState.endDate,
+                searchText: searchText,
+                sortColumn: sortColumn,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            });
 
         payableState.pageNumber = pageNumber;
         payableState.pageSize = pageSize;
@@ -387,19 +480,32 @@ function displayPayablePayments(result) {
         return `handlePayableSort('${col}', '${newDirection}')`;
     };
 
+    // Build table headers based on role
+    let tableHeaders = `
+        <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
+        <th>Total Duration (Minutes)</th>
+        <th>IsPaid</th>
+        <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+    `;
+    
+    if (userRole === 'Owner') {
+        tableHeaders += `
+        <th class="sortable-header" onclick="${getSortHandler('BookerName')}">Book Name ${getSortIcon('BookerName')}</th>
+        <th class="sortable-header" onclick="${getSortHandler('BookerEmail')}">Book Email ${getSortIcon('BookerEmail')}</th>
+        `;
+    } else {
+        tableHeaders += `<th>Actions</th>`;
+    }
+
     const table = `
         <table class="table data-table">
             <thead>
                 <tr>
-                    <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('Date')}">Date ${getSortIcon('Date')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('StartTime')}">Start Time ${getSortIcon('StartTime')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
-                    <th>Total Duration (Minutes)</th>
-                    <th>IsPaid</th>
-                    <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
-                    <th>Actions</th>
+                    ${tableHeaders}
                 </tr>
             </thead>
             <tbody>
@@ -413,8 +519,7 @@ function displayPayablePayments(result) {
                     const price = payment.price ? payment.price.toFixed(2) : '0.00';
                     const paymentId = payment.paymentId || 0;
                     
-                    return `
-                    <tr>
+                    let rowCells = `
                         <td>${stadiumName}</td>
                         <td>${arenaName}</td>
                         <td>${date}</td>
@@ -423,13 +528,26 @@ function displayPayablePayments(result) {
                         <td>${totalDuration}</td>
                         <td><span class="badge status-pending">No</span></td>
                         <td>$${price}</td>
+                    `;
+                    
+                    if (userRole === 'Owner') {
+                        const bookerName = payment.bookerName || 'N/A';
+                        const bookerEmail = payment.bookerEmail || 'N/A';
+                        rowCells += `
+                        <td>${bookerName}</td>
+                        <td>${bookerEmail}</td>
+                        `;
+                    } else {
+                        rowCells += `
                         <td>
                             <button class="btn btn-sm btn-primary" onclick="showPaymentConfirmation(${paymentId}, '${stadiumName.replace(/'/g, "\\'")}', '${arenaName.replace(/'/g, "\\'")}', '${date}', '${startTime.replace(/'/g, "\\'")}', '${endTime.replace(/'/g, "\\'")}', ${totalDuration}, ${price})">
                                 Pay Now
                             </button>
                         </td>
-                    </tr>
-                `;
+                        `;
+                    }
+                    
+                    return `<tr>${rowCells}</tr>`;
                 }).join('')}
             </tbody>
         </table>
@@ -464,11 +582,20 @@ function displayPayablePayments(result) {
 function updatePayableTotal(result) {
     const totalPayableEl = document.getElementById('totalPayable');
     if (totalPayableEl) {
-        if (result.totalPayable !== undefined) {
-            totalPayableEl.textContent = result.totalPayable.toFixed(2);
-        } else if (result.payments) {
-            const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
-            totalPayableEl.textContent = total.toFixed(2);
+        if (userRole === 'Owner') {
+            if (result.totalPending !== undefined) {
+                totalPayableEl.textContent = result.totalPending.toFixed(2);
+            } else if (result.payments) {
+                const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
+                totalPayableEl.textContent = total.toFixed(2);
+            }
+        } else {
+            if (result.totalPayable !== undefined) {
+                totalPayableEl.textContent = result.totalPayable.toFixed(2);
+            } else if (result.payments) {
+                const total = result.payments.reduce((sum, payment) => sum + (payment.price || 0), 0);
+                totalPayableEl.textContent = total.toFixed(2);
+            }
         }
     }
 }

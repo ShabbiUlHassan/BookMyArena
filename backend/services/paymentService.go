@@ -286,3 +286,239 @@ func ProcessPayment(paymentID int, userID int) error {
 
 	return nil
 }
+
+// getOrderByColumnForOwnerPayment maps frontend sort column names to actual SQL column/expression for Owner view
+func getOrderByColumnForOwnerPayment(sortColumn string) string {
+	columnMap := map[string]string{
+		"StadiumName": "s.Name",
+		"ArenaName":   "a.Name",
+		"Date":        "aa.Date",
+		"StartTime":   "aa.StartTime",
+		"EndTime":     "aa.EndTime",
+		"Price":       "br.Price",
+		"BookerName":  "u.FullName",
+		"BookerEmail": "u.Email",
+	}
+
+	if mapped, ok := columnMap[sortColumn]; ok {
+		return mapped
+	}
+	return "aa.Date" // default
+}
+
+// GetOwnerPaymentsPaginated retrieves paginated payments for an owner
+func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.PaginatedOwnerPayments, error) {
+	// Validate and set sort column (whitelist to prevent SQL injection)
+	sortColumn := params.SortColumn
+	if sortColumn == "" {
+		sortColumn = "Date"
+	}
+	validSortColumns := map[string]bool{
+		"StadiumName": true, "ArenaName": true, "Date": true,
+		"StartTime": true, "EndTime": true, "Price": true,
+		"BookerName": true, "BookerEmail": true,
+	}
+	if !validSortColumns[sortColumn] {
+		sortColumn = "Date"
+	}
+
+	// Validate sort direction
+	sortDirection := params.SortDirection
+	if sortDirection != "ASC" && sortDirection != "DESC" {
+		sortDirection = "DESC"
+	}
+
+	// Validate pagination parameters
+	if params.PageNumber < 1 {
+		params.PageNumber = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 10
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Calculate pagination
+	offset := (params.PageNumber - 1) * params.PageSize
+
+	// Build WHERE conditions and arguments
+	var whereConditions []string
+	var countArgs []interface{}
+	var queryArgs []interface{}
+	paramIndex := 1
+
+	// Base conditions (always present)
+	whereConditions = append(whereConditions, "p.IsDeleted = 0")
+	whereConditions = append(whereConditions, fmt.Sprintf("s.OwnerId = @p%d", paramIndex))
+	countArgs = append(countArgs, params.OwnerID)
+	queryArgs = append(queryArgs, params.OwnerID)
+	paramIndex++
+
+	// IsPaid filter
+	if params.IsPaid != nil {
+		isPaidValue := 0
+		if *params.IsPaid {
+			isPaidValue = 1
+		}
+		whereConditions = append(whereConditions, fmt.Sprintf("p.IsPaid = @p%d", paramIndex))
+		countArgs = append(countArgs, isPaidValue)
+		queryArgs = append(queryArgs, isPaidValue)
+		paramIndex++
+	}
+
+	// Date range filters (use PaidDate for received, Date for pending, or Date for both)
+	if params.StartDate != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("aa.Date >= @p%d", paramIndex))
+		countArgs = append(countArgs, params.StartDate)
+		queryArgs = append(queryArgs, params.StartDate)
+		paramIndex++
+	}
+	if params.EndDate != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("aa.Date <= @p%d", paramIndex))
+		countArgs = append(countArgs, params.EndDate)
+		queryArgs = append(queryArgs, params.EndDate)
+		paramIndex++
+	}
+
+	// Search text filter (includes BookerName and BookerEmail)
+	if params.SearchText != "" {
+		searchPattern := "%" + params.SearchText + "%"
+		searchParamIndex := paramIndex
+		whereConditions = append(whereConditions, fmt.Sprintf(`(
+			s.Name LIKE @p%d OR
+			a.Name LIKE @p%d OR
+			CONVERT(VARCHAR, aa.Date, 120) LIKE @p%d OR
+			CAST(aa.StartTime AS VARCHAR) LIKE @p%d OR
+			CAST(aa.EndTime AS VARCHAR) LIKE @p%d OR
+			CAST(br.Price AS VARCHAR) LIKE @p%d OR
+			u.FullName LIKE @p%d OR
+			u.Email LIKE @p%d
+		)`, searchParamIndex, searchParamIndex, searchParamIndex, searchParamIndex, searchParamIndex, searchParamIndex, searchParamIndex, searchParamIndex))
+		countArgs = append(countArgs, searchPattern)
+		queryArgs = append(queryArgs, searchPattern)
+		paramIndex++
+	}
+
+	// Build WHERE clause
+	whereClause := "WHERE " + whereConditions[0]
+	for i := 1; i < len(whereConditions); i++ {
+		whereClause += " AND " + whereConditions[i]
+	}
+
+	// Build count query
+	countQuery := `
+		SELECT COUNT(*) 
+		FROM Payments p
+		INNER JOIN BookingRequest br ON p.BookingRequestID = br.BookingRequestId
+		INNER JOIN ArenaAvailability aa ON br.AvailabilityId = aa.Id
+		INNER JOIN Arenas a ON br.ArenaID = a.ArenaId
+		INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+		INNER JOIN Users u ON br.CreatedBy = u.UserId
+		` + whereClause
+
+	// Map sort column to actual SQL column/expression
+	orderByColumn := getOrderByColumnForOwnerPayment(sortColumn)
+
+	// Build main query with pagination
+	query := fmt.Sprintf(`
+		SELECT 
+			p.PaymentID,
+			s.Name AS StadiumName,
+			a.Name AS ArenaName,
+			CONVERT(VARCHAR, aa.Date, 120) AS Date,
+			CAST(aa.StartTime AS VARCHAR) AS StartTime,
+			CAST(aa.EndTime AS VARCHAR) AS EndTime,
+			DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
+			br.Price AS Price,
+			p.IsPaid AS IsPaid,
+			u.FullName AS BookerName,
+			u.Email AS BookerEmail
+		FROM Payments p
+		INNER JOIN BookingRequest br ON p.BookingRequestID = br.BookingRequestId
+		INNER JOIN ArenaAvailability aa ON br.AvailabilityId = aa.Id
+		INNER JOIN Arenas a ON br.ArenaID = a.ArenaId
+		INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+		INNER JOIN Users u ON br.CreatedBy = u.UserId
+		%s
+		ORDER BY %s %s 
+		OFFSET @p%d ROWS FETCH NEXT @p%d ROWS ONLY
+	`, whereClause, orderByColumn, sortDirection, paramIndex, paramIndex+1)
+
+	queryArgs = append(queryArgs, offset, params.PageSize)
+
+	// Get total count
+	var totalCount int
+	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
+	if params.PageNumber > totalPages && totalPages > 0 {
+		params.PageNumber = totalPages
+		// Recalculate offset
+		offset = (params.PageNumber - 1) * params.PageSize
+		queryArgs[len(queryArgs)-2] = offset
+	}
+
+	// Execute main query
+	rows, err := config.DB.Query(query, queryArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query payments: %w", err)
+	}
+	defer rows.Close()
+
+	var payments []models.PaymentWithOwnerDetails
+	var totalPrice float64 = 0
+
+	for rows.Next() {
+		var payment models.PaymentWithOwnerDetails
+		var isPaidBool bool
+
+		err := rows.Scan(
+			&payment.PaymentID,
+			&payment.StadiumName,
+			&payment.ArenaName,
+			&payment.Date,
+			&payment.StartTime,
+			&payment.EndTime,
+			&payment.TotalDuration,
+			&payment.Price,
+			&isPaidBool,
+			&payment.BookerName,
+			&payment.BookerEmail,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan payment: %w", err)
+		}
+
+		payment.IsPaid = isPaidBool
+		totalPrice += payment.Price
+		payments = append(payments, payment)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	result := &models.PaginatedOwnerPayments{
+		Payments:   payments,
+		TotalCount: totalCount,
+		TotalPages: totalPages,
+		PageNumber: params.PageNumber,
+		PageSize:   params.PageSize,
+	}
+
+	// Add total based on IsPaid filter
+	if params.IsPaid != nil {
+		if *params.IsPaid {
+			result.TotalReceived = totalPrice
+		} else {
+			result.TotalPending = totalPrice
+		}
+	}
+
+	return result, nil
+}

@@ -74,6 +74,7 @@ func SetupRoutes() *mux.Router {
 
 	// Payment routes
 	api.HandleFunc("/payments/user", controllers.GetUserPayments).Methods("GET", "OPTIONS")
+	api.HandleFunc("/payments/owner", controllers.GetOwnerPayments).Methods("GET", "OPTIONS")
 	api.HandleFunc("/payments/{id}/process", controllers.ProcessPayment).Methods("PUT", "OPTIONS")
 
 	// Serve static files (frontend)
