@@ -242,6 +242,25 @@
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
                             const isPending = status === 'Pending';
+                            const isBooked = status === 'Booked';
+                            
+                            // Check if date and endTime have passed for Booked status
+                            let canDelete = true;
+                            if (isBooked && date !== 'N/A' && br.endTime) {
+                                try {
+                                    // Combine date and endTime to create a datetime
+                                    const rawEndTime = br.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
+                                    const dateTimeString = `${date} ${rawEndTime}`;
+                                    const bookingEndDateTime = new Date(dateTimeString);
+                                    const currentDateTime = new Date();
+                                    
+                                    // Enable delete if current time has passed the booking end time
+                                    canDelete = currentDateTime > bookingEndDateTime;
+                                } catch (e) {
+                                    console.error('Error parsing date/time:', e);
+                                    canDelete = false;
+                                }
+                            }
                             
                             return `
                             <tr>
@@ -264,10 +283,16 @@
                                                 onclick="declineBookingRequest(${bookingRequestId})">
                                             Decline
                                         </button>
-                                    ` : `
+                                    ` : canDelete ? `
                                         <button class="btn btn-sm btn-danger" 
                                                 onclick="deleteBookingRequest(${bookingRequestId})" 
                                                 title="Delete Booking Request">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-sm btn-danger disabled" 
+                                                disabled 
+                                                title="Cannot delete booked request until end time has passed">
                                             <i class="bi bi-trash me-1"></i>Delete
                                         </button>
                                     `}
