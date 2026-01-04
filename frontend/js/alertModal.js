@@ -43,9 +43,11 @@ function showAlertModal(message, type = 'info') {
     const modalHeader = modalElement.querySelector('.modal-header');
     const okButton = modalElement.querySelector('.modal-footer .btn');
     
-    // Clear previous classes
+    // Clear previous classes and styles
     modalHeader.classList.remove('bg-success', 'bg-danger', 'bg-info', 'bg-warning', 'text-white');
     okButton.classList.remove('btn-success', 'btn-danger', 'btn-info', 'btn-warning');
+    modalHeader.style.backgroundColor = '';
+    modalHeader.style.color = '';
     
     // Set content and styling based on type
     modalMessage.textContent = message;
@@ -53,22 +55,26 @@ function showAlertModal(message, type = 'info') {
     switch (type.toLowerCase()) {
         case 'success':
             modalTitle.textContent = 'Success';
-            modalHeader.classList.add('bg-success', 'text-white');
-            okButton.classList.add('btn-success');
+            modalHeader.style.backgroundColor = '#1C4D8D';
+            modalHeader.style.color = 'white';
+            okButton.classList.add('btn-primary');
             break;
         case 'error':
             modalTitle.textContent = 'Error';
-            modalHeader.classList.add('bg-danger', 'text-white');
+            modalHeader.style.backgroundColor = '#dc3545';
+            modalHeader.style.color = 'white';
             okButton.classList.add('btn-danger');
             break;
         case 'warning':
             modalTitle.textContent = 'Warning';
-            modalHeader.classList.add('bg-warning', 'text-white');
-            okButton.classList.add('btn-warning');
+            modalHeader.style.backgroundColor = '#BDE8F5';
+            modalHeader.style.color = '#333';
+            okButton.classList.add('btn-secondary');
             break;
         default:
             modalTitle.textContent = 'Information';
-            modalHeader.classList.add('bg-info', 'text-white');
+            modalHeader.style.backgroundColor = '#0dcaf0';
+            modalHeader.style.color = 'white';
             okButton.classList.add('btn-info');
     }
     
