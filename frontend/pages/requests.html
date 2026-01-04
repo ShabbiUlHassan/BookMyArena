@@ -241,7 +241,7 @@
                             const price = br.price ? br.price.toFixed(2) : '0.00';
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
-                            const canAction = status === 'Pending';
+                            const isPending = status === 'Pending';
                             
                             return `
                             <tr>
@@ -255,16 +255,22 @@
                             <td>$${price}</td>
                             <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
                             <td>
-                                    <button class="btn btn-sm btn-success me-2 ${!canAction ? 'disabled' : ''}" 
-                                            onclick="${canAction ? `acceptBookingRequest(${bookingRequestId})` : 'return false;'}" 
-                                            ${!canAction ? 'disabled title="Can only accept pending requests"' : ''}>
-                                        Accept
-                                    </button>
-                                    <button class="btn btn-sm btn-danger ${!canAction ? 'disabled' : ''}" 
-                                            onclick="${canAction ? `declineBookingRequest(${bookingRequestId})` : 'return false;'}" 
-                                            ${!canAction ? 'disabled title="Can only decline pending requests"' : ''}>
-                                        Decline
-                                    </button>
+                                    ${isPending ? `
+                                        <button class="btn btn-sm btn-success me-2" 
+                                                onclick="acceptBookingRequest(${bookingRequestId})">
+                                            Accept
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="declineBookingRequest(${bookingRequestId})">
+                                            Decline
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="deleteBookingRequest(${bookingRequestId})" 
+                                                title="Delete Booking Request">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    `}
                                 </td>
                             </tr>
                         `;
@@ -420,6 +426,20 @@
             showConfirmationModal(bookingRequestId, 'Declined', 'decline');
         }
 
+        async function deleteBookingRequest(bookingRequestId) {
+            if (!confirm('Are you sure you want to delete this booking request?')) {
+                return;
+            }
+
+            try {
+                await API.deleteBookingRequest(bookingRequestId);
+                alert('Booking request deleted successfully!');
+                await loadOwnerBookingRequests();
+            } catch (error) {
+                alert('Error deleting booking request: ' + error.message);
+            }
+        }
+
         async function executePendingAction() {
             if (!pendingAction) {
                 return;
@@ -461,6 +481,7 @@
         window.clearStatusFilter = clearStatusFilter;
         window.acceptBookingRequest = acceptBookingRequest;
         window.declineBookingRequest = declineBookingRequest;
+        window.deleteBookingRequest = deleteBookingRequest;
         window.executePendingAction = executePendingAction;
 
         // Load data on page load

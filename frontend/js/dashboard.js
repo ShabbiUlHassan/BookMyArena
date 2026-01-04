@@ -231,7 +231,7 @@ function displayStadiums(stadiums) {
             <div class="arena-table-container" id="arena-container-${stadium.stadiumId}">
                 <div class="arena-table-header">
                     <div class="arena-search" id="arena-search-container-${stadium.stadiumId}" style="display: none;">
-                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search all columns..." 
+                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search By Any Column..." 
                                onkeyup="handleArenaSearch(${stadium.stadiumId}, event)"
                                oninput="handleArenaSearchInput(${stadium.stadiumId}, event)">
                     </div>

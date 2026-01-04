@@ -232,7 +232,7 @@
                             const price = br.price ? br.price.toFixed(2) : '0.00';
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
-                            const canDelete = status === 'Pending';
+                            const isPending = status === 'Pending';
                             
                             return `
                             <tr>
@@ -245,11 +245,13 @@
                             <td>$${price}</td>
                             <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
                             <td>
-                                    <button class="btn btn-sm btn-danger ${!canDelete ? 'disabled' : ''}" 
-                                            onclick="${canDelete ? `deleteBookingRequest(${bookingRequestId})` : 'return false;'}" 
-                                            ${!canDelete ? 'disabled title="Can only delete pending requests"' : ''}>
-                                        <i class="bi bi-trash me-1"></i>Delete
-                                    </button>
+                                    ${!isPending ? `
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="deleteBookingRequest(${bookingRequestId})" 
+                                                title="Delete Booking Request">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `;
