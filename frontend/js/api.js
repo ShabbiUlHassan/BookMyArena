@@ -287,5 +287,28 @@ const API = {
             body: JSON.stringify({ status: status }),
         });
     },
+
+    // Payment endpoints
+    async getUserPayments(params) {
+        const queryParams = new URLSearchParams();
+        if (params.isPaid !== undefined) queryParams.append('isPaid', params.isPaid ? '1' : '0');
+        if (params.startDate) queryParams.append('startDate', params.startDate);
+        if (params.endDate) queryParams.append('endDate', params.endDate);
+        if (params.searchText) queryParams.append('searchText', params.searchText);
+        if (params.sortColumn) queryParams.append('sortColumn', params.sortColumn);
+        if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+        if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber);
+        if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+
+        return this.request(`/api/payments/user?${queryParams.toString()}`, {
+            method: 'GET',
+        });
+    },
+
+    async processPayment(paymentId) {
+        return this.request(`/api/payments/${paymentId}/process`, {
+            method: 'PUT',
+        });
+    },
 };
 
