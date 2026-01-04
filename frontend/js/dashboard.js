@@ -824,6 +824,25 @@ function formatTime(timeStr) {
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
+// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+function formatDate(dateStr) {
+    if (!dateStr || dateStr === 'N/A') return dateStr;
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        
+        const day = date.getDate();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        
+        return `${day}-${month}-${year}`;
+    } catch (error) {
+        return dateStr; // Return original if parsing fails
+    }
+}
+
 function displayUserAvailabilityTable(result) {
     const tableContainer = document.getElementById('userAvailabilityTable');
     const paginationContainer = document.getElementById('userAvailabilityPagination');
@@ -879,7 +898,7 @@ function displayUserAvailabilityTable(result) {
                     const location = availability.location || 'N/A';
                     const sportType = availability.sportType || 'N/A';
                     const capacity = availability.capacity || 0;
-                    const date = availability.date || 'N/A';
+                    const date = formatDate(availability.date || 'N/A');
                     const startTime = formatTime(availability.startTime || 'N/A');
                     const endTime = formatTime(availability.endTime || 'N/A');
                     const totalDuration = availability.totalDuration || 0;

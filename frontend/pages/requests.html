@@ -185,6 +185,25 @@
             return timeStr.replace(/\.\d+/g, '').trim();
         }
 
+        // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return dateStr;
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr; // Invalid date
+                
+                const day = date.getDate();
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                
+                return `${day}-${month}-${year}`;
+            } catch (error) {
+                return dateStr; // Return original if parsing fails
+            }
+        }
+
         function displayOwnerBookingRequests(result) {
             const tableContainer = document.getElementById('ownerBookingRequestTable');
             const paginationContainer = document.getElementById('ownerBookingRequestPagination');
@@ -234,7 +253,8 @@
                             const stadiumName = br.stadiumName || 'N/A';
                             const arenaName = br.arenaName || 'N/A';
                             const location = br.location || 'N/A';
-                            const date = br.date || 'N/A';
+                            const originalDate = br.date || 'N/A';
+                            const date = formatDate(originalDate);
                             const startTime = formatTime(br.startTime || 'N/A');
                             const endTime = formatTime(br.endTime || 'N/A');
                             const totalDuration = br.totalDuration || 0;
@@ -246,11 +266,11 @@
                             
                             // Check if date and endTime have passed for Booked status
                             let canDelete = true;
-                            if (isBooked && date !== 'N/A' && br.endTime) {
+                            if (isBooked && originalDate !== 'N/A' && br.endTime) {
                                 try {
                                     // Combine date and endTime to create a datetime
                                     const rawEndTime = br.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
-                                    const dateTimeString = `${date} ${rawEndTime}`;
+                                    const dateTimeString = `${originalDate} ${rawEndTime}`;
                                     const bookingEndDateTime = new Date(dateTimeString);
                                     const currentDateTime = new Date();
                                     

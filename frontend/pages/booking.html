@@ -178,6 +178,25 @@
             return timeStr.replace(/\.\d+/g, '').trim();
         }
 
+        // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return dateStr;
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr; // Invalid date
+                
+                const day = date.getDate();
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                
+                return `${day}-${month}-${year}`;
+            } catch (error) {
+                return dateStr; // Return original if parsing fails
+            }
+        }
+
         function displayBookingRequests(result) {
             const tableContainer = document.getElementById('bookingRequestTable');
             const paginationContainer = document.getElementById('bookingRequestPagination');
@@ -225,7 +244,7 @@
                         ${result.bookingRequests.map(br => {
                             const stadiumName = br.stadiumName || 'N/A';
                             const arenaName = br.arenaName || 'N/A';
-                            const date = br.date || 'N/A';
+                            const date = formatDate(br.date || 'N/A');
                             const startTime = formatTime(br.startTime || 'N/A');
                             const endTime = formatTime(br.endTime || 'N/A');
                             const totalDuration = br.totalDuration || 0;

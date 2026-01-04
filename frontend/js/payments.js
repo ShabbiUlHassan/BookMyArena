@@ -76,6 +76,25 @@ function formatTime(timeStr) {
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
+// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+function formatDate(dateStr) {
+    if (!dateStr || dateStr === 'N/A') return dateStr;
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        
+        const day = date.getDate();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        
+        return `${day}-${month}-${year}`;
+    } catch (error) {
+        return dateStr; // Return original if parsing fails
+    }
+}
+
 // Date filter handlers
 function handleDateFilterChange() {
     const startMonth = document.getElementById('dateFilterStart').value;
@@ -212,7 +231,7 @@ function displayPaidPayments(result) {
                 ${result.payments.map(payment => {
                     const stadiumName = payment.stadiumName || 'N/A';
                     const arenaName = payment.arenaName || 'N/A';
-                    const date = payment.date || 'N/A';
+                    const date = formatDate(payment.date || 'N/A');
                     const startTime = formatTime(payment.startTime || 'N/A');
                     const endTime = formatTime(payment.endTime || 'N/A');
                     const totalDuration = payment.totalDuration || 0;
@@ -387,7 +406,7 @@ function displayPayablePayments(result) {
                 ${result.payments.map(payment => {
                     const stadiumName = payment.stadiumName || 'N/A';
                     const arenaName = payment.arenaName || 'N/A';
-                    const date = payment.date || 'N/A';
+                    const date = formatDate(payment.date || 'N/A');
                     const startTime = formatTime(payment.startTime || 'N/A');
                     const endTime = formatTime(payment.endTime || 'N/A');
                     const totalDuration = payment.totalDuration || 0;
