@@ -170,6 +170,24 @@ function displayAvailabilityTable(result) {
                     const availabilityId = availability.id || '';
                     const isReserved = availability.reserved || false;
                     
+                    // Check if date and endTime have passed
+                    let canDelete = false;
+                    if (isReserved && date !== 'N/A' && availability.endTime) {
+                        try {
+                            // Combine date and endTime to create a datetime
+                            const rawEndTime = availability.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
+                            const dateTimeString = `${date} ${rawEndTime}`;
+                            const availabilityEndDateTime = new Date(dateTimeString);
+                            const currentDateTime = new Date();
+                            
+                            // Enable delete if current time has passed the availability end time
+                            canDelete = currentDateTime > availabilityEndDateTime;
+                        } catch (e) {
+                            console.error('Error parsing date/time:', e);
+                            canDelete = false;
+                        }
+                    }
+                    
                     return `
                     <tr>
                         <td>${date}</td>
@@ -186,8 +204,12 @@ function displayAvailabilityTable(result) {
                                 <button class="btn btn-sm btn-danger" onclick="deleteAvailability('${availabilityId}')" title="Delete Availability">
                                     <i class="bi bi-trash me-1"></i>Delete
                                 </button>
+                            ` : canDelete ? `
+                                <button class="btn btn-sm btn-danger" onclick="deleteAvailability('${availabilityId}')" title="Delete Availability">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
                             ` : `
-                                <button class="btn btn-sm btn-danger disabled" disabled title="Cannot delete reserved availability">
+                                <button class="btn btn-sm btn-danger disabled" disabled title="Cannot delete reserved availability until end time has passed">
                                     <i class="bi bi-trash me-1"></i>Delete
                                 </button>
                             `}
