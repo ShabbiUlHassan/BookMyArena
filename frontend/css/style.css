@@ -151,7 +151,7 @@ small {
 }
 
 .btn-primary:hover {
-    background-color: #5568d3;
+    background-color: #1C4D8D;
 }
 
 .btn-secondary {
@@ -160,7 +160,7 @@ small {
 }
 
 .btn-secondary:hover {
-    background-color: #7f8c8d;
+    background-color: #95a5a6;
 }
 
 .btn-success {
@@ -417,7 +417,7 @@ small {
 }
 
 .sortable-header:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: transparent !important;
 }
 
 .sort-icon {
@@ -651,8 +651,8 @@ small {
 }
 
 .btn-primary:hover:not(.disabled) {
-    background-color: #5568d3;
-    border-color: #5568d3;
+    background-color: #1C4D8D;
+    border-color: #1C4D8D;
 }
 
 .btn-secondary {
@@ -662,8 +662,8 @@ small {
 }
 
 .btn-secondary:hover:not(.disabled) {
-    background-color: #5a6268;
-    border-color: #5a6268;
+    background-color: #4988C4;
+    border-color: #4988C4;
 }
 
 .btn.disabled,
