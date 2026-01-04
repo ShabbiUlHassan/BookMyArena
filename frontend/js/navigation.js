@@ -36,7 +36,7 @@ function initSidebar() {
                     <li><a href="booking.html" class="nav-link ${currentPage === 'booking' ? 'active' : ''}">
                         <i class="bi bi-calendar-check me-2"></i> Bookings
                     </a></li>
-                    <li id="paymentsNavItem" style="display: ${isOwner ? 'block' : 'none'};"><a href="payments.html" class="nav-link ${currentPage === 'payments' ? 'active' : ''}">
+                    <li><a href="payments.html" class="nav-link ${currentPage === 'payments' ? 'active' : ''}">
                         <i class="bi bi-credit-card me-2"></i> Payment
                     </a></li>
                 </ul>

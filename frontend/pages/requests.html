@@ -317,21 +317,13 @@
                             <option value="100" ${ownerBookingRequestState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
                         </select>
                     </div>
-                    <nav>
-                        <ul class="pagination">
-                            <li class="page-item ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}">
-                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber - 1}); return false;">Previous</a>
-                            </li>
-                            ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
-                                <li class="page-item ${page === ownerBookingRequestState.pageNumber ? 'active' : ''}">
-                                    <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${page}); return false;">${page}</a>
-                                </li>
-                            `).join('')}
-                            <li class="page-item ${ownerBookingRequestState.pageNumber === ownerBookingRequestState.totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber + 1}); return false;">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+                    <div class="pagination-controls">
+                        <button onclick="handleOwnerBookingRequestPageChange(1); return false;" ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}>First</button>
+                        <button onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber - 1}); return false;" ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}>Previous</button>
+                        <span class="pagination-page-info">Page ${ownerBookingRequestState.pageNumber} of ${result.totalPages}</span>
+                        <button onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber + 1}); return false;" ${ownerBookingRequestState.pageNumber >= result.totalPages ? 'disabled' : ''}>Next</button>
+                        <button onclick="handleOwnerBookingRequestPageChange(${result.totalPages}); return false;" ${ownerBookingRequestState.pageNumber >= result.totalPages ? 'disabled' : ''}>Last</button>
+                    </div>
                 `;
             } else if (paginationContainer) {
                 paginationContainer.innerHTML = '';

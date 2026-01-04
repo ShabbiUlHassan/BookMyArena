@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('ownerDashboard').style.display = 'block';
         document.getElementById('availabilityNavItem').style.display = 'block';
         document.getElementById('requestsNavItem').style.display = 'block';
-        document.getElementById('paymentsNavItem').style.display = 'block';
         loadOwnerDashboard();
     } else {
         document.getElementById('userDashboard').style.display = 'block';

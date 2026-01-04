@@ -332,6 +332,14 @@ small {
     cursor: not-allowed;
 }
 
+.pagination-page-info {
+    color: #4988C4;
+    font-size: 0.9rem;
+}
+.pagination-controls {
+    color: #4988C4;
+    font-size: 0.9rem;
+}
 .pagination-info {
     display: flex;
     align-items: center;
