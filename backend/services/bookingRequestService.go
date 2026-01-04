@@ -644,11 +644,12 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 	var currentOwnerID int
 	var currentStatus string
 	var availabilityId string
+	var bookieID int
 	err = tx.QueryRow(`
-		SELECT OwnersId, RStatus, CAST(AvailabilityId AS VARCHAR(36))
+		SELECT OwnersId, RStatus, CAST(AvailabilityId AS VARCHAR(36)), BookieID
 		FROM BookingRequest 
 		WHERE BookingRequestId = @p1 AND IsDeleted = 0
-	`, bookingRequestID).Scan(&currentOwnerID, &currentStatus, &availabilityId)
+	`, bookingRequestID).Scan(&currentOwnerID, &currentStatus, &availabilityId, &bookieID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -678,16 +679,26 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 		return fmt.Errorf("failed to update booking request status: %w", err)
 	}
 
-	// If status is "Booked", mark related availability as unavailable
+	// If status is "Booked", mark related availability as unavailable and create payment record
 	if newStatus == "Booked" {
 		_, err = tx.Exec(`
 			UPDATE ArenaAvailability 
-			SET AvailabilityDone = 1, BookerId = (SELECT BookieID FROM BookingRequest WHERE BookingRequestId = @p1)
+			SET AvailabilityDone = 1, BookerId = @p1
 			WHERE CAST(Id AS VARCHAR(36)) = @p2
-		`, bookingRequestID, availabilityId)
+		`, bookieID, availabilityId)
 
 		if err != nil {
 			return fmt.Errorf("failed to update availability: %w", err)
+		}
+
+		// Create payment record
+		_, err = tx.Exec(`
+			INSERT INTO Payments (BookingRequestID, IsPaid, PaidDate, CreatedBy, IsDeleted)
+			VALUES (@p1, 0, NULL, @p2, 0)
+		`, bookingRequestID, bookieID)
+
+		if err != nil {
+			return fmt.Errorf("failed to create payment: %w", err)
 		}
 	}
 

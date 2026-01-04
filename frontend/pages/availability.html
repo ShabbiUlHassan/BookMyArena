@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Availability - BookMyArena</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../images/logo.png">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -13,7 +15,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="dashboard.html" style="padding-left: 260px;">BookMyArena</a>
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                <img src="../images/logo.png" alt="BookMyArena Logo">
+                BookMyArena
+            </a>
             <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
                 <span class="text-light" id="userName"></span>
                 <a class="nav-link" href="#" id="logoutLink">Logout</a>
@@ -22,31 +27,12 @@
     </nav>
 
     <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <nav class="sidebar-nav">
-                <ul class="list-unstyled">
-                    <li><a href="dashboard.html" class="nav-link">
-                        <i class="bi bi-house-door me-2"></i> Home
-                    </a></li>
-                    <li><a href="booking.html" class="nav-link">
-                        <i class="bi bi-calendar-check me-2"></i> Booking
-                    </a></li>
-                    <li id="availabilityNavItem" style="display: none;"><a href="availability.html" class="nav-link active">
-                        <i class="bi bi-calendar-event me-2"></i> Availability
-                    </a></li>
-                    <li id="requestsNavItem" style="display: none;"><a href="requests.html" class="nav-link">
-                        <i class="bi bi-clipboard-check me-2"></i> Requests
-                    </a></li>
-                    <li id="paymentsNavItem" style="display: none;"><a href="payments.html" class="nav-link">
-                        <i class="bi bi-credit-card me-2"></i> Payments
-                    </a></li>
-                </ul>
-            </nav>
-        </aside>
+        <!-- Sidebar Container - populated by navigation.js -->
+        <div id="sidebar-container"></div>
 
         <!-- Main Content -->
         <main class="dashboard-content">
+            <div class="section">
             <h2 class="mb-3">Availability</h2>
             <p class="text-muted mb-4">Manage availability schedules for your arenas.</p>
             
@@ -60,10 +46,24 @@
                                 type="text" 
                                 class="form-control" 
                                 id="availabilitySearch" 
-                                placeholder="Search by date, time, stadium, arena, booker..."
+                                placeholder="Search by Date, Time, Stadium, Arena, Booker..."
                                 onkeyup="handleAvailabilitySearch(event)"
                                 oninput="handleAvailabilitySearchInput(event)"
                             >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Filter by Reservation</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn" id="filterReservedBtn" onclick="handleReservationFilter(true)" style="background-color: #28a745; color: white; border: none;">
+                                    Reserved
+                                </button>
+                                <button type="button" class="btn" id="filterFreeBtn" onclick="handleReservationFilter(false)" style="background-color: #4988C4; color: white; border: none;">
+                                    Free
+                                </button>
+                                <button type="button" class="btn" id="clearFilterBtn" onclick="clearReservationFilter()" style="background-color: #4988C4; color: white; border: none; display: none;">
+                                    Clear Filter
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -74,6 +74,7 @@
             
             <!-- Pagination Footer -->
             <div id="availabilityPagination" class="arena-table-footer"></div>
+            </div>
         </main>
     </div>
 
@@ -82,6 +83,7 @@
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
+    <script src="../js/alertModal.js"></script>
     <script src="../js/availability.js"></script>
 </body>
 </html>

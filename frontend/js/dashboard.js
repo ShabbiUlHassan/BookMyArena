@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('ownerDashboard').style.display = 'block';
         document.getElementById('availabilityNavItem').style.display = 'block';
         document.getElementById('requestsNavItem').style.display = 'block';
-        document.getElementById('paymentsNavItem').style.display = 'block';
         loadOwnerDashboard();
     } else {
         document.getElementById('userDashboard').style.display = 'block';
@@ -34,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeAddStadiumModal();
             loadOwnerDashboard();
         } catch (error) {
-            alert('Error: ' + error.message);
+            showAlertModal('Error: ' + error.message, 'error');
         }
     });
 
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const state = stadiumArenaState[stadiumId] || {};
             loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
         } catch (error) {
-            alert('Error: ' + error.message);
+            showAlertModal('Error: ' + error.message, 'error');
         }
     });
 
@@ -80,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const slots = document.querySelectorAll('.availability-slot');
             
             if (slots.length === 0) {
-                alert('Please add at least one availability slot');
+                showAlertModal('Please add at least one availability slot', 'warning');
                 return;
             }
             
@@ -93,14 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const endTime = slot.querySelector('.availability-end-time').value;
                 
                 if (!date || !startTime || !endTime) {
-                    alert(`Date Entry ${index + 1} is incomplete`);
-                    hasError = true;
-                    return;
-                }
-                
-                // Validate start time is before end time
-                if (startTime >= endTime) {
-                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
+                    showAlertModal(`Date Entry ${index + 1} is incomplete`, 'warning');
                     hasError = true;
                     return;
                 }
@@ -114,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const diffMinutes = endTotalMinutes - startTotalMinutes;
                 
                 if (diffMinutes < 60) {
-                    alert(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`);
+                    showAlertModal(`Date Entry ${index + 1}: End time must be at least 60 minutes after start time`, 'warning');
                     hasError = true;
                     return;
                 }
@@ -136,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     availabilities: availabilities
                 });
                 
-                alert('Availability created successfully!');
+                showAlertModal('Availability created successfully!', 'success');
                 
                 // Close modal
                 const modalElement = document.getElementById('availabilityModal');
@@ -152,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     availabilitySlotCount = 0;
                 }, 300);
             } catch (error) {
-                alert('Error creating availability: ' + error.message);
+                showAlertModal('Error creating availability: ' + error.message, 'error');
             }
         });
     }
@@ -179,14 +171,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const availabilityId = document.getElementById('bookingAvailabilityId').value;
             
             if (!availabilityId) {
-                alert('Availability ID is missing');
+                showAlertModal('Availability ID is missing', 'warning');
                 return;
             }
             
             try {
                 await API.createBookingRequest(availabilityId);
                 
-                alert('Booking request created successfully!');
+                showAlertModal('Booking request created successfully!', 'success');
                 
                 // Close modal
                 const modalElement = document.getElementById('bookingConfirmationModal');
@@ -198,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Reload the availability table to reflect the booking
                 await loadUserAvailabilityTable();
             } catch (error) {
-                alert('Error creating booking request: ' + error.message);
+                showAlertModal('Error creating booking request: ' + error.message, 'error');
             }
         });
     }
@@ -231,7 +223,7 @@ function displayStadiums(stadiums) {
             <div class="arena-table-container" id="arena-container-${stadium.stadiumId}">
                 <div class="arena-table-header">
                     <div class="arena-search" id="arena-search-container-${stadium.stadiumId}" style="display: none;">
-                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search all columns..." 
+                        <input type="text" id="arena-search-${stadium.stadiumId}" placeholder="Search By Any Column..." 
                                onkeyup="handleArenaSearch(${stadium.stadiumId}, event)"
                                oninput="handleArenaSearchInput(${stadium.stadiumId}, event)">
                     </div>
@@ -570,7 +562,7 @@ async function updateBookingStatus(bookingId, status) {
             }
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        showAlertModal('Error: ' + error.message, 'error');
     }
 }
 
@@ -753,7 +745,7 @@ async function cancelUserBooking(bookingId) {
         await API.cancelBooking(bookingId);
         loadUserBookings();
     } catch (error) {
-        alert('Error: ' + error.message);
+        showAlertModal('Error: ' + error.message, 'error');
     }
 }
 
@@ -818,6 +810,32 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
     }
 }
 
+// Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
+function formatTime(timeStr) {
+    if (!timeStr || timeStr === 'N/A') return timeStr;
+    // Remove milliseconds/microseconds (decimal point and everything after)
+    return timeStr.replace(/\.\d+/g, '').trim();
+}
+
+// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+function formatDate(dateStr) {
+    if (!dateStr || dateStr === 'N/A') return dateStr;
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        
+        const day = date.getDate();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        
+        return `${day}-${month}-${year}`;
+    } catch (error) {
+        return dateStr; // Return original if parsing fails
+    }
+}
+
 function displayUserAvailabilityTable(result) {
     const tableContainer = document.getElementById('userAvailabilityTable');
     const paginationContainer = document.getElementById('userAvailabilityPagination');
@@ -873,9 +891,9 @@ function displayUserAvailabilityTable(result) {
                     const location = availability.location || 'N/A';
                     const sportType = availability.sportType || 'N/A';
                     const capacity = availability.capacity || 0;
-                    const date = availability.date || 'N/A';
-                    const startTime = availability.startTime || 'N/A';
-                    const endTime = availability.endTime || 'N/A';
+                    const date = formatDate(availability.date || 'N/A');
+                    const startTime = formatTime(availability.startTime || 'N/A');
+                    const endTime = formatTime(availability.endTime || 'N/A');
                     const totalDuration = availability.totalDuration || 0;
                     const price = availability.price ? availability.price.toFixed(2) : '0.00';
                     const availabilityId = availability.id || '';
@@ -994,7 +1012,7 @@ async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, en
         });
         modal.show();
     } catch (error) {
-        alert('Error loading booking details: ' + error.message);
+        showAlertModal('Error loading booking details: ' + error.message, 'error');
     }
 }
 
@@ -1132,7 +1150,7 @@ async function editArena(arenaId, stadiumId) {
         });
         modal.show();
     } catch (error) {
-        alert('Error loading arena: ' + error.message);
+        showAlertModal('Error loading arena: ' + error.message, 'error');
     }
 }
 
@@ -1147,7 +1165,7 @@ async function deleteArena(arenaId, stadiumId) {
         const state = stadiumArenaState[stadiumId] || {};
         loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
     } catch (error) {
-        alert('Error deleting arena: ' + error.message);
+        showAlertModal('Error deleting arena: ' + error.message, 'error');
     }
 }
 
@@ -1181,7 +1199,7 @@ function showAvailabilityModal(arenaId, stadiumId) {
 
 function addAvailabilitySlot() {
     if (availabilitySlotCount >= 10) {
-        alert('Maximum 10 availability slots allowed');
+        showAlertModal('Maximum 10 availability slots allowed', 'warning');
         return;
     }
     
@@ -1207,15 +1225,19 @@ function addAvailabilitySlot() {
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Date</label>
-                    <input type="date" class="form-control availability-date" required min="${minDate}" value="${todayStr}">
+                    <input type="date" class="form-control availability-date" required min="${minDate}" value="${todayStr}" placeholder="Select Date">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Start Time</label>
-                    <input type="time" class="form-control availability-start-time" required>
+                    <select class="form-select availability-start-time" required>
+                        <option value="">Select Start Time</option>
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">End Time</label>
-                    <input type="time" class="form-control availability-end-time" required>
+                    <select class="form-select availability-end-time" required>
+                        <option value="">Select End Time</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -1225,12 +1247,28 @@ function addAvailabilitySlot() {
     
     // Add event listeners for time validation
     const slotElement = document.getElementById(slotId);
-    const startTimeInput = slotElement.querySelector('.availability-start-time');
-    const endTimeInput = slotElement.querySelector('.availability-end-time');
+    const startTimeSelect = slotElement.querySelector('.availability-start-time');
+    const endTimeSelect = slotElement.querySelector('.availability-end-time');
     
-    // When start time changes, update end time min value
-    startTimeInput.addEventListener('change', function() {
-        updateEndTimeMin(slotElement);
+    // Generate and populate both Start Time and End Time dropdown options
+    const timeOptions = generateTimeOptions();
+    timeOptions.forEach(time => {
+        // Add to Start Time dropdown
+        const startOption = document.createElement('option');
+        startOption.value = time;
+        startOption.textContent = time;
+        startTimeSelect.appendChild(startOption);
+        
+        // Add to End Time dropdown
+        const endOption = document.createElement('option');
+        endOption.value = time;
+        endOption.textContent = time;
+        endTimeSelect.appendChild(endOption);
+    });
+    
+    // When start time changes, update end time options
+    startTimeSelect.addEventListener('change', function() {
+        updateEndTimeOptions(slotElement);
     });
     
     // Update add button visibility
@@ -1242,34 +1280,90 @@ function addAvailabilitySlot() {
     }
 }
 
-function updateEndTimeMin(slotElement) {
-    const startTimeInput = slotElement.querySelector('.availability-start-time');
-    const endTimeInput = slotElement.querySelector('.availability-end-time');
+// Generate time options for dropdown (every 15 minutes from 00:00 to 23:59)
+function generateTimeOptions() {
+    const options = [];
+    for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+            const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            options.push(timeStr);
+        }
+    }
+    return options;
+}
+
+// Update End Time dropdown options - disable times before Start Time + 60 minutes
+function updateEndTimeOptions(slotElement) {
+    const startTimeSelect = slotElement.querySelector('.availability-start-time');
+    const endTimeSelect = slotElement.querySelector('.availability-end-time');
+    const validationMsg = slotElement.querySelector('.end-time-validation');
     
-    if (!startTimeInput.value) {
-        endTimeInput.removeAttribute('min');
+    // Remove existing validation message if present
+    if (validationMsg) {
+        validationMsg.remove();
+    }
+    
+    if (!startTimeSelect.value) {
+        // If no start time selected, enable all options
+        Array.from(endTimeSelect.options).forEach(option => {
+            if (option.value !== '') {
+                option.disabled = false;
+                option.style.color = '';
+                option.style.opacity = '1';
+            }
+        });
+        // Reset end time selection
+        endTimeSelect.value = '';
         return;
     }
     
     // Parse start time
-    const [startHours, startMinutes] = startTimeInput.value.split(':').map(Number);
+    const [startHours, startMinutes] = startTimeSelect.value.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
     
-    // Add 60 minutes
-    const startDate = new Date();
-    startDate.setHours(startHours, startMinutes, 0, 0);
-    startDate.setMinutes(startDate.getMinutes() + 60);
+    // Calculate minimum allowed end time (Start Time + 60 minutes)
+    const minEndTotalMinutes = startTotalMinutes + 60;
     
-    // Format as HH:MM for the min attribute
-    const minHours = String(startDate.getHours()).padStart(2, '0');
-    const minMinutes = String(startDate.getMinutes()).padStart(2, '0');
-    const minTime = `${minHours}:${minMinutes}`;
+    // Get current end time value before updating
+    const currentEndTime = endTimeSelect.value;
     
-    // Set min attribute on end time input
-    endTimeInput.setAttribute('min', minTime);
+    // Enable/disable options based on 60-minute rule
+    let hasEnabledOptions = false;
+    Array.from(endTimeSelect.options).forEach(option => {
+        if (option.value === '') {
+            // Keep the empty/default option enabled
+            return;
+        }
+        
+        const [endHours, endMinutes] = option.value.split(':').map(Number);
+        const endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes >= minEndTotalMinutes) {
+            option.disabled = false;
+            option.style.color = '';
+            option.style.opacity = '1';
+            hasEnabledOptions = true;
+        } else {
+            option.disabled = true;
+            option.style.color = '#999';
+            option.style.opacity = '0.5';
+        }
+    });
     
-    // If current end time is before the new minimum, clear it
-    if (endTimeInput.value && endTimeInput.value < minTime) {
-        endTimeInput.value = '';
+    // If current end time is now disabled, reset it
+    if (currentEndTime) {
+        const selectedOption = endTimeSelect.querySelector(`option[value="${currentEndTime}"]`);
+        if (selectedOption && selectedOption.disabled) {
+            endTimeSelect.value = '';
+        }
+    }
+    
+    // Show validation message if no options are available
+    if (!hasEnabledOptions) {
+        const validationDiv = document.createElement('div');
+        validationDiv.className = 'end-time-validation text-danger small mt-1';
+        validationDiv.textContent = 'No valid end time options available. Please select a different start time.';
+        endTimeSelect.parentElement.appendChild(validationDiv);
     }
 }
 

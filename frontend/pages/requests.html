@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Requests - BookMyArena</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../images/logo.png">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -14,51 +16,25 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="dashboard.html">BookMyArena</a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <a class="nav-link" href="#" onclick="logout(); return false;">Logout</a>
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                <img src="../images/logo.png" alt="BookMyArena Logo">
+                BookMyArena
+            </a>
+            <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+                <span class="text-light" id="userName"></span>
+                <a class="nav-link" href="#" id="logoutLink">Logout</a>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 sidebar bg-dark" id="sidebar">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="dashboard.html">
-                            <i class="bi bi-house-door me-2"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="booking.html">
-                            <i class="bi bi-calendar-check me-2"></i>Booking
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="requests.html">
-                            <i class="bi bi-envelope me-2"></i>Requests
-                        </a>
-                    </li>
-                    <li class="nav-item" id="paymentsNavItem" style="display: none;">
-                        <a class="nav-link" href="payments.html">
-                            <i class="bi bi-credit-card me-2"></i>Payments
-                        </a>
-                    </li>
-                    <li class="nav-item" id="availabilityNavItem" style="display: none;">
-                        <a class="nav-link" href="availability.html">
-                            <i class="bi bi-clock me-2"></i>Availability
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+    <div class="dashboard-layout">
+        <!-- Sidebar Container - populated by navigation.js -->
+        <div id="sidebar-container"></div>
 
-            <!-- Main Content -->
-            <main class="col-md-9 col-lg-10 dashboard-content">
+        <!-- Main Content -->
+        <main class="dashboard-content">
                 <section class="section">
-                    <h2>Booking Requests</h2>
+                    <h2>Booking & Requests</h2>
                     <p>Review and manage incoming booking requests for your arenas.</p>
                     
                     <!-- Search Section -->
@@ -71,10 +47,27 @@
                                         type="text" 
                                         class="form-control" 
                                         id="ownerBookingRequestSearch" 
-                                        placeholder="Search by stadium, arena, location, date, time, status..."
+                                        placeholder="Search by Date, Time, Stadium, Arena, Booker..."
                                         onkeyup="handleOwnerBookingRequestSearch(event)"
                                         oninput="handleOwnerBookingRequestSearchInput(event)"
                                     >
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Filter by Status</label>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn" id="filterAcceptBtn" onclick="handleStatusFilter('Booked')" style="background-color: #28a745; color: white; border: none;">
+                                            Accept
+                                        </button>
+                                        <button type="button" class="btn" id="filterDeclineBtn" onclick="handleStatusFilter('Declined')" style="background-color: #dc3545; color: white; border: none;">
+                                            Decline
+                                        </button>
+                                        <button type="button" class="btn" id="filterPendingBtn" onclick="handleStatusFilter('Pending')" style="background-color: #4988C4; color: white; border: none;">
+                                            Pending
+                                        </button>
+                                        <button type="button" class="btn" id="clearFilterBtn" onclick="clearStatusFilter()" style="background-color: #4988C4; color: white; border: none; display: none;">
+                                            Clear Filter
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -86,8 +79,7 @@
                     <!-- Pagination Footer -->
                     <div id="ownerBookingRequestPagination" class="arena-table-footer"></div>
                 </section>
-            </main>
-        </div>
+        </main>
     </div>
 
     <!-- Confirmation Modal -->
@@ -114,6 +106,7 @@
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
+    <script src="../js/alertModal.js"></script>
     <script>
         // Owner Booking Requests State
         let ownerBookingRequestState = {
@@ -121,11 +114,13 @@
             pageSize: 10,
             searchText: '',
             sortColumn: 'CreatedDate',
-            sortDirection: 'DESC'
+            sortDirection: 'DESC',
+            statusFilter: null // 'Booked' for Accept, 'Declined' for Decline, null for all
         };
         let ownerBookingRequestSearchTimeout = null;
+        let allBookingRequests = []; // Store all fetched requests for client-side filtering
 
-        async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection) {
+        async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection, statusFilter = ownerBookingRequestState.statusFilter) {
             const tableContainer = document.getElementById('ownerBookingRequestTable');
             const paginationContainer = document.getElementById('ownerBookingRequestPagination');
             
@@ -134,30 +129,84 @@
             tableContainer.innerHTML = '<p>Loading booking requests...</p>';
 
             try {
+                // Fetch all data for client-side filtering by status
+                // Using a large page size to get all records, then filter client-side
                 const result = await API.getOwnerBookingRequests({
                     searchText,
                     sortColumn,
                     sortDirection,
-                    pageNumber,
-                    pageSize
+                    pageNumber: 1,
+                    pageSize: 1000 // Get all records for filtering
                 });
 
                 console.log('Loaded owner booking requests:', result);
 
+                // Store all requests
+                allBookingRequests = result.bookingRequests || [];
+
+                // Apply status filter if set
+                let filteredRequests = allBookingRequests;
+                if (statusFilter) {
+                    filteredRequests = allBookingRequests.filter(br => (br.status || 'N/A') === statusFilter);
+                }
+
+                // Apply pagination to filtered results
+                const startIndex = (pageNumber - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
+                const totalCount = filteredRequests.length;
+                const totalPages = Math.ceil(totalCount / pageSize);
+
+                // Create result object with filtered and paginated data
+                const filteredResult = {
+                    bookingRequests: paginatedRequests,
+                    totalCount: totalCount,
+                    totalPages: totalPages,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize
+                };
+
                 ownerBookingRequestState = {
-                    pageNumber: result.pageNumber || 1,
-                    pageSize: result.pageSize || 10,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
                     searchText: searchText,
                     sortColumn: sortColumn,
                     sortDirection: sortDirection,
-                    totalCount: result.totalCount || 0,
-                    totalPages: result.totalPages || 0
+                    statusFilter: statusFilter,
+                    totalCount: totalCount,
+                    totalPages: totalPages
                 };
 
-                displayOwnerBookingRequests(result);
+                displayOwnerBookingRequests(filteredResult);
             } catch (error) {
                 console.error('Error loading booking requests:', error);
                 tableContainer.innerHTML = `<p class="error-message">Error loading booking requests: ${error.message}</p>`;
+            }
+        }
+
+        // Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
+        function formatTime(timeStr) {
+            if (!timeStr || timeStr === 'N/A') return timeStr;
+            // Remove milliseconds/microseconds (decimal point and everything after)
+            return timeStr.replace(/\.\d+/g, '').trim();
+        }
+
+        // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'N/A') return dateStr;
+            
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr; // Invalid date
+                
+                const day = date.getDate();
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                
+                return `${day}-${month}-${year}`;
+            } catch (error) {
+                return dateStr; // Return original if parsing fails
             }
         }
 
@@ -210,14 +259,34 @@
                             const stadiumName = br.stadiumName || 'N/A';
                             const arenaName = br.arenaName || 'N/A';
                             const location = br.location || 'N/A';
-                            const date = br.date || 'N/A';
-                            const startTime = br.startTime || 'N/A';
-                            const endTime = br.endTime || 'N/A';
+                            const originalDate = br.date || 'N/A';
+                            const date = formatDate(originalDate);
+                            const startTime = formatTime(br.startTime || 'N/A');
+                            const endTime = formatTime(br.endTime || 'N/A');
                             const totalDuration = br.totalDuration || 0;
                             const price = br.price ? br.price.toFixed(2) : '0.00';
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
-                            const canAction = status === 'Pending';
+                            const isPending = status === 'Pending';
+                            const isBooked = status === 'Booked';
+                            
+                            // Check if date and endTime have passed for Booked status
+                            let canDelete = true;
+                            if (isBooked && originalDate !== 'N/A' && br.endTime) {
+                                try {
+                                    // Combine date and endTime to create a datetime
+                                    const rawEndTime = br.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
+                                    const dateTimeString = `${originalDate} ${rawEndTime}`;
+                                    const bookingEndDateTime = new Date(dateTimeString);
+                                    const currentDateTime = new Date();
+                                    
+                                    // Enable delete if current time has passed the booking end time
+                                    canDelete = currentDateTime > bookingEndDateTime;
+                                } catch (e) {
+                                    console.error('Error parsing date/time:', e);
+                                    canDelete = false;
+                                }
+                            }
                             
                             return `
                             <tr>
@@ -231,16 +300,28 @@
                             <td>$${price}</td>
                             <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
                             <td>
-                                    <button class="btn btn-sm btn-success me-2 ${!canAction ? 'disabled' : ''}" 
-                                            onclick="${canAction ? `acceptBookingRequest(${bookingRequestId})` : 'return false;'}" 
-                                            ${!canAction ? 'disabled title="Can only accept pending requests"' : ''}>
-                                        Accept
-                                    </button>
-                                    <button class="btn btn-sm btn-danger ${!canAction ? 'disabled' : ''}" 
-                                            onclick="${canAction ? `declineBookingRequest(${bookingRequestId})` : 'return false;'}" 
-                                            ${!canAction ? 'disabled title="Can only decline pending requests"' : ''}>
-                                        Decline
-                                    </button>
+                                    ${isPending ? `
+                                        <button class="btn btn-sm btn-success me-2" 
+                                                onclick="acceptBookingRequest(${bookingRequestId})">
+                                            Accept
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="declineBookingRequest(${bookingRequestId})">
+                                            Decline
+                                        </button>
+                                    ` : canDelete ? `
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="deleteBookingRequest(${bookingRequestId})" 
+                                                title="Delete Booking Request">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-sm btn-danger disabled" 
+                                                disabled 
+                                                title="Cannot delete booked request until end time has passed">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    `}
                                 </td>
                             </tr>
                         `;
@@ -262,21 +343,13 @@
                             <option value="100" ${ownerBookingRequestState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
                         </select>
                     </div>
-                    <nav>
-                        <ul class="pagination">
-                            <li class="page-item ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}">
-                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber - 1}); return false;">Previous</a>
-                            </li>
-                            ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
-                                <li class="page-item ${page === ownerBookingRequestState.pageNumber ? 'active' : ''}">
-                                    <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${page}); return false;">${page}</a>
-                                </li>
-                            `).join('')}
-                            <li class="page-item ${ownerBookingRequestState.pageNumber === ownerBookingRequestState.totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="#" onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber + 1}); return false;">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+                    <div class="pagination-controls">
+                        <button onclick="handleOwnerBookingRequestPageChange(1); return false;" ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}>First</button>
+                        <button onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber - 1}); return false;" ${ownerBookingRequestState.pageNumber === 1 ? 'disabled' : ''}>Previous</button>
+                        <span class="pagination-page-info">Page ${ownerBookingRequestState.pageNumber} of ${result.totalPages}</span>
+                        <button onclick="handleOwnerBookingRequestPageChange(${ownerBookingRequestState.pageNumber + 1}); return false;" ${ownerBookingRequestState.pageNumber >= result.totalPages ? 'disabled' : ''}>Next</button>
+                        <button onclick="handleOwnerBookingRequestPageChange(${result.totalPages}); return false;" ${ownerBookingRequestState.pageNumber >= result.totalPages ? 'disabled' : ''}>Last</button>
+                    </div>
                 `;
             } else if (paginationContainer) {
                 paginationContainer.innerHTML = '';
@@ -287,7 +360,7 @@
             if (event.key === 'Enter') {
                 const searchInput = document.getElementById('ownerBookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
             }
         }
 
@@ -296,20 +369,78 @@
             ownerBookingRequestSearchTimeout = setTimeout(() => {
                 const searchInput = document.getElementById('ownerBookingRequestSearch');
                 const searchText = searchInput ? searchInput.value : '';
-                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+                loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
             }, 500);
         }
 
         function handleOwnerBookingRequestSort(sortColumn, sortDirection) {
-            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, sortColumn, sortDirection);
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, sortColumn, sortDirection, ownerBookingRequestState.statusFilter);
         }
 
         function handleOwnerBookingRequestPageChange(pageNumber) {
-            loadOwnerBookingRequests(pageNumber, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            loadOwnerBookingRequests(pageNumber, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
         }
 
         function handleOwnerBookingRequestPageSizeChange(pageSize) {
-            loadOwnerBookingRequests(1, parseInt(pageSize), ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection);
+            loadOwnerBookingRequests(1, parseInt(pageSize), ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, ownerBookingRequestState.statusFilter);
+        }
+
+        function handleStatusFilter(status) {
+            // Set filter (don't toggle - always set to the clicked status)
+            const newFilter = status;
+            
+            // Update button styles and clear filter button visibility
+            updateFilterButtonStyles(newFilter);
+            
+            // Reload with new filter
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
+        }
+
+        function clearStatusFilter() {
+            // Remove filter
+            const newFilter = null;
+            
+            // Update button styles and clear filter button visibility
+            updateFilterButtonStyles(newFilter);
+            
+            // Reload without filter
+            loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
+        }
+
+        function updateFilterButtonStyles(statusFilter) {
+            const acceptBtn = document.getElementById('filterAcceptBtn');
+            const declineBtn = document.getElementById('filterDeclineBtn');
+            const pendingBtn = document.getElementById('filterPendingBtn');
+            const clearBtn = document.getElementById('clearFilterBtn');
+            
+            if (acceptBtn && declineBtn && pendingBtn && clearBtn) {
+                // Always set opacity to 1 for all filter buttons
+                acceptBtn.style.opacity = '1';
+                declineBtn.style.opacity = '1';
+                pendingBtn.style.opacity = '1';
+                
+                if (statusFilter === 'Booked') {
+                    acceptBtn.style.fontWeight = 'bold';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Declined') {
+                    declineBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else if (statusFilter === 'Pending') {
+                    pendingBtn.style.fontWeight = 'bold';
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'inline-block';
+                } else {
+                    acceptBtn.style.fontWeight = 'normal';
+                    declineBtn.style.fontWeight = 'normal';
+                    pendingBtn.style.fontWeight = 'normal';
+                    clearBtn.style.display = 'none';
+                }
+            }
         }
 
         let pendingAction = null; // Store the pending action (bookingRequestId and status)
@@ -338,6 +469,20 @@
             showConfirmationModal(bookingRequestId, 'Declined', 'decline');
         }
 
+        async function deleteBookingRequest(bookingRequestId) {
+            if (!confirm('Are you sure you want to delete this booking request?')) {
+                return;
+            }
+
+            try {
+                await API.deleteBookingRequest(bookingRequestId);
+                showAlertModal('Booking request deleted successfully!', 'success');
+                await loadOwnerBookingRequests();
+            } catch (error) {
+                showAlertModal('Error deleting booking request: ' + error.message, 'error');
+            }
+        }
+
         async function executePendingAction() {
             if (!pendingAction) {
                 return;
@@ -357,13 +502,13 @@
                 const message = actionType === 'accept' 
                     ? 'Booking request accepted successfully!'
                     : 'Booking request declined successfully!';
-                alert(message);
+                showAlertModal(message, 'success');
                 await loadOwnerBookingRequests();
             } catch (error) {
                 const errorMessage = actionType === 'accept'
                     ? 'Error accepting booking request: '
                     : 'Error declining booking request: ';
-                alert(errorMessage + error.message);
+                showAlertModal(errorMessage + error.message, 'error');
             } finally {
                 pendingAction = null;
             }
@@ -375,8 +520,11 @@
         window.handleOwnerBookingRequestSort = handleOwnerBookingRequestSort;
         window.handleOwnerBookingRequestPageChange = handleOwnerBookingRequestPageChange;
         window.handleOwnerBookingRequestPageSizeChange = handleOwnerBookingRequestPageSizeChange;
+        window.handleStatusFilter = handleStatusFilter;
+        window.clearStatusFilter = clearStatusFilter;
         window.acceptBookingRequest = acceptBookingRequest;
         window.declineBookingRequest = declineBookingRequest;
+        window.deleteBookingRequest = deleteBookingRequest;
         window.executePendingAction = executePendingAction;
 
         // Load data on page load
@@ -398,6 +546,9 @@
                 window.location.href = 'dashboard.html';
                 return;
             }
+
+            // Initialize filter button styles
+            updateFilterButtonStyles(null);
 
             await loadOwnerBookingRequests();
         });
