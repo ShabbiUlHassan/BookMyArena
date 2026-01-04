@@ -67,6 +67,14 @@ small {
     font-size: 1.5rem;
     font-weight: 600;
     padding-left: 260px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-brand img {
+    height: 40px;
+    width: auto;
 }
 
 .navbar-dark,
