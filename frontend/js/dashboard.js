@@ -789,22 +789,53 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
             searchText,
             sortColumn,
             sortDirection,
-            pageNumber,
-            pageSize
+            pageNumber: 1,
+            pageSize: 1000 // Get all records for filtering
         });
+
+        // Filter out past records (date and endTime must be greater than current date and time)
+        const currentDateTime = new Date();
+        const futureAvailabilities = (result.availabilities || []).filter(av => {
+            // Parse the availability end date/time
+            const availabilityEndDateTime = parseAvailabilityDateTime(av.date, av.endTime);
+            
+            if (!availabilityEndDateTime) {
+                // Exclude records with invalid or missing date/time
+                return false;
+            }
+            
+            // Only include if availability end time is in the future
+            return availabilityEndDateTime > currentDateTime;
+        });
+
+        // Apply pagination to filtered results
+        const startIndex = (pageNumber - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedAvailabilities = futureAvailabilities.slice(startIndex, endIndex);
+        const totalCount = futureAvailabilities.length;
+        const totalPages = Math.ceil(totalCount / pageSize);
+
+        // Create filtered result object
+        const filteredResult = {
+            availabilities: paginatedAvailabilities,
+            totalCount: totalCount,
+            totalPages: totalPages,
+            pageNumber: pageNumber,
+            pageSize: pageSize
+        };
 
         // Update state
         userAvailabilityState = {
-            pageNumber: result.pageNumber || pageNumber,
-            pageSize: result.pageSize || pageSize,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
             searchText,
             sortColumn,
             sortDirection,
-            totalCount: result.totalCount || 0,
-            totalPages: result.totalPages || 0
+            totalCount: totalCount,
+            totalPages: totalPages
         };
 
-        displayUserAvailabilityTable(result);
+        displayUserAvailabilityTable(filteredResult);
     } catch (error) {
         console.error('Error loading availability:', error);
         tableContainer.innerHTML = `<p class="error-message">Error loading availability: ${error.message}</p>`;
@@ -816,6 +847,56 @@ function formatTime(timeStr) {
     if (!timeStr || timeStr === 'N/A') return timeStr;
     // Remove milliseconds/microseconds (decimal point and everything after)
     return timeStr.replace(/\.\d+/g, '').trim();
+}
+
+// Parse date and time to create a Date object for comparison
+function parseAvailabilityDateTime(dateStr, timeStr) {
+    if (!dateStr || !timeStr || dateStr === 'N/A' || timeStr === 'N/A') {
+        return null;
+    }
+    
+    try {
+        // Remove milliseconds from time if present
+        const cleanTime = timeStr.replace(/\.\d+/g, '').trim();
+        
+        // Date format from SQL Server CONVERT(VARCHAR, Date, 120) is YYYY-MM-DD
+        const cleanDate = dateStr.trim();
+        
+        // Parse date components
+        const dateParts = cleanDate.split('-');
+        if (dateParts.length !== 3) {
+            console.warn('Invalid date format:', cleanDate);
+            return null;
+        }
+        
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2], 10);
+        
+        // Parse time components
+        const timeParts = cleanTime.split(':');
+        if (timeParts.length < 2) {
+            console.warn('Invalid time format:', cleanTime);
+            return null;
+        }
+        
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+        const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
+        
+        // Create date object using local time
+        const dateTime = new Date(year, month, day, hours, minutes, seconds);
+        
+        if (isNaN(dateTime.getTime())) {
+            console.warn('Failed to create date from components:', { year, month, day, hours, minutes, seconds });
+            return null;
+        }
+        
+        return dateTime;
+    } catch (e) {
+        console.error('Error parsing date/time:', e, 'date:', dateStr, 'time:', timeStr);
+        return null;
+    }
 }
 
 // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
@@ -988,6 +1069,32 @@ function handleUserAvailabilityPageSizeChange(pageSize) {
     loadUserAvailabilityTable(1, parseInt(pageSize), userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
 }
 
+// Format time string to remove milliseconds/microseconds (01:45:00.0000000000000 -> 01:45:00)
+function formatTimeForBooking(timeStr) {
+    if (!timeStr || timeStr === 'N/A') return timeStr;
+    // Remove milliseconds/microseconds (decimal point and everything after)
+    return timeStr.replace(/\.\d+/g, '').trim();
+}
+
+// Format date string to date-Month-YYYY format (e.g., 02-Jan-2026)
+function formatDateForBooking(dateStr) {
+    if (!dateStr || dateStr === 'N/A') return dateStr;
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        
+        return `${day}-${month}-${year}`;
+    } catch (error) {
+        return dateStr; // Return original if parsing fails
+    }
+}
+
 async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, endTime) {
     // Store the availability ID for the confirmation modal
     document.getElementById('bookingAvailabilityId').value = availabilityId;
@@ -999,9 +1106,9 @@ async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, en
         // Populate the confirmation modal with booking details
         document.getElementById('bookingStadiumName').textContent = details.stadiumName || 'N/A';
         document.getElementById('bookingArenaName').textContent = details.arenaName || 'N/A';
-        document.getElementById('bookingDate').textContent = details.date || 'N/A';
-        document.getElementById('bookingStartTime').textContent = details.startTime || 'N/A';
-        document.getElementById('bookingEndTime').textContent = details.endTime || 'N/A';
+        document.getElementById('bookingDate').textContent = formatDateForBooking(details.date || 'N/A');
+        document.getElementById('bookingStartTime').textContent = formatTimeForBooking(details.startTime || 'N/A');
+        document.getElementById('bookingEndTime').textContent = formatTimeForBooking(details.endTime || 'N/A');
         document.getElementById('bookingTotalDuration').textContent = (details.totalDuration || 0) + ' minutes';
         document.getElementById('bookingPrice').textContent = '$' + (details.price ? details.price.toFixed(2) : '0.00');
         
