@@ -144,7 +144,7 @@ func DeleteBookingRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = services.DeleteBookingRequest(bookingRequestID, user.UserID)
+	err = services.DeleteBookingRequest(bookingRequestID, user.UserID, user.Role)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
