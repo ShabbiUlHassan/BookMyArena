@@ -30,6 +30,9 @@ function initSidebar() {
                     <li id="availabilityNavItem" style="display: ${isOwner ? 'block' : 'none'};"><a href="availability.html" class="nav-link ${currentPage === 'availability' ? 'active' : ''}">
                         <i class="bi bi-calendar-event me-2"></i> Availability
                     </a></li>
+                    <li id="bookingNavItem" style="display: ${isOwner ? 'none' : 'block'};"><a href="booking.html" class="nav-link ${currentPage === 'booking' ? 'active' : ''}">
+                        <i class="bi bi-bookmark-check me-2"></i> Booking
+                    </a></li>
                     <li id="requestsNavItem" style="display: ${isOwner ? 'block' : 'none'};"><a href="requests.html" class="nav-link ${currentPage === 'requests' ? 'active' : ''}">
                         <i class="bi bi-clipboard-check me-2"></i> Booking & Requests
                     </a></li>

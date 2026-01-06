@@ -19,6 +19,7 @@ type OwnerBookingRequestWithDetails struct {
 	EndTime          string  `json:"endTime" db:"EndTime"`
 	TotalDuration    int     `json:"totalDuration" db:"TotalDuration"`
 	Price            float64 `json:"price" db:"Price"`
+	RequesterName    string  `json:"requesterName" db:"RequesterName"`
 	Status           string  `json:"status" db:"Status"`
 	AvailabilityId   string  `json:"availabilityId" db:"AvailabilityId"`
 }

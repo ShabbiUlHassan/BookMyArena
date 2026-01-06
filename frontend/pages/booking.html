@@ -203,6 +203,56 @@
             }
         }
 
+        // Parse date and time to create a Date object for comparison
+        function parseBookingRequestDateTime(dateStr, timeStr) {
+            if (!dateStr || !timeStr || dateStr === 'N/A' || timeStr === 'N/A') {
+                return null;
+            }
+            
+            try {
+                // Remove milliseconds from time if present
+                const cleanTime = timeStr.replace(/\.\d+/g, '').trim();
+                
+                // Date format from SQL Server CONVERT(VARCHAR, Date, 120) is YYYY-MM-DD
+                const cleanDate = dateStr.trim();
+                
+                // Parse date components
+                const dateParts = cleanDate.split('-');
+                if (dateParts.length !== 3) {
+                    console.warn('Invalid date format:', cleanDate);
+                    return null;
+                }
+                
+                const year = parseInt(dateParts[0], 10);
+                const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+                const day = parseInt(dateParts[2], 10);
+                
+                // Parse time components
+                const timeParts = cleanTime.split(':');
+                if (timeParts.length < 2) {
+                    console.warn('Invalid time format:', cleanTime);
+                    return null;
+                }
+                
+                const hours = parseInt(timeParts[0], 10);
+                const minutes = parseInt(timeParts[1], 10);
+                const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
+                
+                // Create date object using local time
+                const dateTime = new Date(year, month, day, hours, minutes, seconds);
+                
+                if (isNaN(dateTime.getTime())) {
+                    console.warn('Failed to create date from components:', { year, month, day, hours, minutes, seconds });
+                    return null;
+                }
+                
+                return dateTime;
+            } catch (e) {
+                console.error('Error parsing date/time:', e, 'date:', dateStr, 'time:', timeStr);
+                return null;
+            }
+        }
+
         function displayBookingRequests(result) {
             const tableContainer = document.getElementById('bookingRequestTable');
             const paginationContainer = document.getElementById('bookingRequestPagination');
@@ -250,14 +300,27 @@
                         ${result.bookingRequests.map(br => {
                             const stadiumName = br.stadiumName || 'N/A';
                             const arenaName = br.arenaName || 'N/A';
-                            const date = formatDate(br.date || 'N/A');
+                            const originalDate = br.date || 'N/A';
+                            const date = formatDate(originalDate);
                             const startTime = formatTime(br.startTime || 'N/A');
-                            const endTime = formatTime(br.endTime || 'N/A');
+                            const originalEndTime = br.endTime || 'N/A';
+                            const endTime = formatTime(originalEndTime);
                             const totalDuration = br.totalDuration || 0;
                             const price = br.price ? br.price.toFixed(2) : '0.00';
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
                             const isPending = status === 'Pending';
+                            
+                            // Check if booking end time has passed (only enable delete if end time has passed)
+                            let canDelete = false;
+                            if (!isPending && originalDate !== 'N/A' && originalEndTime !== 'N/A') {
+                                const bookingEndDateTime = parseBookingRequestDateTime(originalDate, originalEndTime);
+                                if (bookingEndDateTime) {
+                                    const currentDateTime = new Date();
+                                    // Enable delete only if booking end time has passed
+                                    canDelete = bookingEndDateTime < currentDateTime;
+                                }
+                            }
                             
                             return `
                             <tr>
@@ -270,13 +333,20 @@
                             <td>$${price}</td>
                             <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
                             <td>
-                                    ${!isPending ? `
+                                    ${!isPending ? (canDelete ? `
                                         <button class="btn btn-sm btn-danger" 
                                                 onclick="deleteBookingRequest(${bookingRequestId})" 
                                                 title="Delete Booking Request">
                                             <i class="bi bi-trash me-1"></i>Delete
                                         </button>
-                                    ` : ''}
+                                    ` : `
+                                        <button class="btn btn-sm btn-danger disabled" 
+                                                disabled 
+                                                style="opacity: 0.6; cursor: not-allowed;"
+                                                title="Cannot delete booking request until end time has passed">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    `) : ''}
                                 </td>
                             </tr>
                         `;

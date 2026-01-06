@@ -17,6 +17,12 @@ let availabilitySearchTimeout = null;
 
 // Load availability table on page load
 document.addEventListener('DOMContentLoaded', async () => {
+    // Set up confirmation button handler
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', executeDeleteAvailability);
+    }
+
     const userStr = sessionStorage.getItem('user');
     if (!userStr) {
         window.location.href = 'login.html';
@@ -228,7 +234,7 @@ function displayAvailabilityTable(result) {
                                     <i class="bi bi-trash me-1"></i>Delete
                                 </button>
                             ` : `
-                                <button class="btn btn-sm btn-danger disabled" disabled title="Cannot delete reserved availability until end time has passed">
+                                <button class="btn btn-sm btn-danger disabled" disabled title="Cannot delete reserved availability until end time has passed" style="opacity: 0.6; cursor: not-allowed;">
                                     <i class="bi bi-trash me-1"></i>Delete
                                 </button>
                             `}
@@ -341,17 +347,47 @@ function updateFilterButtonStyles(reservationFilter) {
     }
 }
 
-async function deleteAvailability(availabilityId) {
-    if (!confirm('Are you sure you want to delete this availability? This action cannot be undone.')) {
+let pendingDeleteAvailabilityId = null; // Store the pending availability ID to delete
+
+function showDeleteConfirmationModal(availabilityId) {
+    pendingDeleteAvailabilityId = availabilityId;
+
+    const modalElement = document.getElementById('confirmationModal');
+    const modal = new bootstrap.Modal(modalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+    modal.show();
+}
+
+async function executeDeleteAvailability() {
+    if (!pendingDeleteAvailabilityId) {
         return;
     }
+
+    const availabilityId = pendingDeleteAvailabilityId;
     
+    // Close modal
+    const modalElement = document.getElementById('confirmationModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
+    }
+
     try {
         await API.deleteArenaAvailability(availabilityId);
+        showAlertModal('Availability deleted successfully!', 'success');
         await loadAvailabilityTable();
     } catch (error) {
         showAlertModal('Error deleting availability: ' + error.message, 'error');
+    } finally {
+        pendingDeleteAvailabilityId = null;
     }
+}
+
+async function deleteAvailability(availabilityId) {
+    showDeleteConfirmationModal(availabilityId);
 }
 
 // Make functions globally accessible
@@ -363,4 +399,5 @@ window.handleAvailabilityPageSizeChange = handleAvailabilityPageSizeChange;
 window.handleReservationFilter = handleReservationFilter;
 window.clearReservationFilter = clearReservationFilter;
 window.deleteAvailability = deleteAvailability;
+window.executeDeleteAvailability = executeDeleteAvailability;
 

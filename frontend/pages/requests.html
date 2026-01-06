@@ -250,6 +250,7 @@
                             <th class="sortable-header" onclick="${getSortHandler('EndTime')}">End Time ${getSortIcon('EndTime')}</th>
                             <th>Total Duration (Minutes)</th>
                             <th class="sortable-header" onclick="${getSortHandler('Price')}">Price ${getSortIcon('Price')}</th>
+                            <th>Requester Name</th>
                             <th class="sortable-header" onclick="${getSortHandler('Status')}">Status ${getSortIcon('Status')}</th>
                             <th>Action</th>
                         </tr>
@@ -265,6 +266,7 @@
                             const endTime = formatTime(br.endTime || 'N/A');
                             const totalDuration = br.totalDuration || 0;
                             const price = br.price ? br.price.toFixed(2) : '0.00';
+                            const requesterName = br.requesterName || 'N/A';
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
                             const isPending = status === 'Pending';
@@ -298,6 +300,7 @@
                                 <td>${endTime}</td>
                                 <td>${totalDuration}</td>
                             <td>$${price}</td>
+                            <td>${requesterName}</td>
                             <td><span class="badge ${status === 'Pending' ? 'status-pending' : status === 'Booked' ? 'status-booked' : 'status-declined'}">${status}</span></td>
                             <td>
                                     ${isPending ? `
