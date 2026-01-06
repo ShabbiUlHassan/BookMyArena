@@ -477,6 +477,7 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 			INNER JOIN ArenaAvailability aa ON br.AvailabilityId = aa.Id
 			INNER JOIN Arenas a ON br.ArenaID = a.ArenaId
 			INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+			INNER JOIN Users u ON br.BookieID = u.UserId
 			WHERE br.IsDeleted = 0 
 			AND br.OwnersId = @p1
 			AND (
@@ -488,7 +489,8 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
 				CAST(br.Price AS VARCHAR) LIKE @p2 OR
 				br.RStatus LIKE @p2 OR
-				CONVERT(VARCHAR, br.CreatedDate, 120) LIKE @p2
+				CONVERT(VARCHAR, br.CreatedDate, 120) LIKE @p2 OR
+				u.FullName LIKE @p2
 			)
 		`
 		countArgs = []interface{}{params.OwnerID, searchPattern}
@@ -506,12 +508,14 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 				CAST(aa.EndTime AS VARCHAR) AS EndTime,
 				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
 				br.Price AS Price,
+				u.FullName AS RequesterName,
 				br.RStatus AS Status,
 				CAST(aa.Id AS VARCHAR(36)) AS AvailabilityId
 			FROM BookingRequest br
 			INNER JOIN ArenaAvailability aa ON br.AvailabilityId = aa.Id
 			INNER JOIN Arenas a ON br.ArenaID = a.ArenaId
 			INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+			INNER JOIN Users u ON br.BookieID = u.UserId
 			WHERE br.IsDeleted = 0 
 			AND br.OwnersId = @p1
 			AND (
@@ -523,7 +527,8 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
 				CAST(br.Price AS VARCHAR) LIKE @p2 OR
 				br.RStatus LIKE @p2 OR
-				CONVERT(VARCHAR, br.CreatedDate, 120) LIKE @p2
+				CONVERT(VARCHAR, br.CreatedDate, 120) LIKE @p2 OR
+				u.FullName LIKE @p2
 			)
 			ORDER BY %s %s 
 			OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY
@@ -533,6 +538,7 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		countQuery = `
 			SELECT COUNT(*) 
 			FROM BookingRequest br
+			INNER JOIN Users u ON br.BookieID = u.UserId
 			WHERE br.IsDeleted = 0 AND br.OwnersId = @p1
 		`
 		countArgs = []interface{}{params.OwnerID}
@@ -550,12 +556,14 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 				CAST(aa.EndTime AS VARCHAR) AS EndTime,
 				DATEDIFF(MINUTE, aa.StartTime, aa.EndTime) AS TotalDuration,
 				br.Price AS Price,
+				u.FullName AS RequesterName,
 				br.RStatus AS Status,
 				CAST(aa.Id AS VARCHAR(36)) AS AvailabilityId
 			FROM BookingRequest br
 			INNER JOIN ArenaAvailability aa ON br.AvailabilityId = aa.Id
 			INNER JOIN Arenas a ON br.ArenaID = a.ArenaId
 			INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
+			INNER JOIN Users u ON br.BookieID = u.UserId
 			WHERE br.IsDeleted = 0 AND br.OwnersId = @p1
 			ORDER BY %s %s 
 			OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
@@ -604,6 +612,7 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 			&br.EndTime,
 			&br.TotalDuration,
 			&br.Price,
+			&br.RequesterName,
 			&br.Status,
 			&br.AvailabilityId,
 		)

@@ -341,7 +341,7 @@ function displayArenasTable(stadiumId, result) {
                     <th class="sortable-header" onclick="${getSortHandler('Name')}">Arena Name ${getSortIcon('Name')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('SportType')}">Sport Type ${getSortIcon('SportType')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('Capacity')}">Capacity ${getSortIcon('Capacity')}</th>
-                    <th class="sortable-header" onclick="${getSortHandler('SlotDuration')}">Slot Duration ${getSortIcon('SlotDuration')}</th>
+                    <th class="sortable-header" onclick="${getSortHandler('SlotDuration')}">Min. Slot Duration ${getSortIcon('SlotDuration')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('Price')}">Price per Slot ${getSortIcon('Price')}</th>
                     <th class="sortable-header" onclick="${getSortHandler('CreatedAt')}">Created At ${getSortIcon('CreatedAt')}</th>
                     <th>Actions</th>
@@ -350,7 +350,8 @@ function displayArenasTable(stadiumId, result) {
             <tbody>
                 ${result.arenas.map(arena => {
                     const arenaName = arena.name || 'Unnamed Arena';
-                    const sportType = arena.sportType || 'N/A';
+                    const sportTypeRaw = arena.sportType || 'N/A';
+                    const sportType = sportTypeRaw !== 'N/A' ? sportTypeRaw.charAt(0).toUpperCase() + sportTypeRaw.slice(1).toLowerCase() : 'N/A';
                     const capacity = arena.capacity || 0;
                     const slotDuration = arena.slotDuration || 0;
                     const price = arena.price ? arena.price.toFixed(2) : '0.00';
@@ -889,7 +890,8 @@ function displayUserAvailabilityTable(result) {
                     const stadiumName = availability.stadiumName || 'N/A';
                     const arenaName = availability.arenaName || 'N/A';
                     const location = availability.location || 'N/A';
-                    const sportType = availability.sportType || 'N/A';
+                    const sportTypeRaw = availability.sportType || 'N/A';
+                    const sportType = sportTypeRaw !== 'N/A' ? sportTypeRaw.charAt(0).toUpperCase() + sportTypeRaw.slice(1).toLowerCase() : 'N/A';
                     const capacity = availability.capacity || 0;
                     const date = formatDate(availability.date || 'N/A');
                     const startTime = formatTime(availability.startTime || 'N/A');
