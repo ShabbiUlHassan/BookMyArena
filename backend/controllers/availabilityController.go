@@ -146,6 +146,12 @@ func GetUserAvailabilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := middleware.GetUserFromContext(r)
+	if user == nil {
+		utils.RespondWithError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
 	// Parse query parameters
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
@@ -172,6 +178,7 @@ func GetUserAvailabilities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := models.UserAvailabilitySearchParams{
+		UserID:        user.UserID,
 		SearchText:    searchText,
 		SortColumn:    sortColumn,
 		SortDirection: sortDirection,

@@ -1,6 +1,7 @@
 package models
 
 type UserAvailabilitySearchParams struct {
+	UserID        int
 	SearchText    string
 	SortColumn    string
 	SortDirection string

@@ -263,21 +263,24 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			FROM ArenaAvailability aa
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
+				AND br.BookieID = @p1 AND br.IsDeleted = 0
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
+			AND br.BookingRequestId IS NULL
 			AND (
-				s.Name LIKE @p1 OR
-				a.Name LIKE @p1 OR
-				s.Location LIKE @p1 OR
-				a.SportType LIKE @p1 OR
-				CONVERT(VARCHAR, aa.Date, 120) LIKE @p1 OR
-				CAST(aa.StartTime AS VARCHAR) LIKE @p1 OR
-				CAST(aa.EndTime AS VARCHAR) LIKE @p1 OR
-				CAST(a.Price AS VARCHAR) LIKE @p1 OR
-				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p1
+				s.Name LIKE @p2 OR
+				a.Name LIKE @p2 OR
+				s.Location LIKE @p2 OR
+				a.SportType LIKE @p2 OR
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p2 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p2 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
+				CAST(a.Price AS VARCHAR) LIKE @p2 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p2
 			)
 		`
-		countArgs = []interface{}{searchPattern}
+		countArgs = []interface{}{params.UserID, searchPattern}
 
 		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForUser(sortColumn)
@@ -299,31 +302,38 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			FROM ArenaAvailability aa
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
+			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
+				AND br.BookieID = @p1 AND br.IsDeleted = 0
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
+			AND br.BookingRequestId IS NULL
 			AND (
-				s.Name LIKE @p1 OR
-				a.Name LIKE @p1 OR
-				s.Location LIKE @p1 OR
-				a.SportType LIKE @p1 OR
-				CAST(a.Capacity AS VARCHAR) LIKE @p1 OR
-				CONVERT(VARCHAR, aa.Date, 120) LIKE @p1 OR
-				CAST(aa.StartTime AS VARCHAR) LIKE @p1 OR
-				CAST(aa.EndTime AS VARCHAR) LIKE @p1 OR
-				CAST(a.Price AS VARCHAR) LIKE @p1 OR
-				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p1
+				s.Name LIKE @p2 OR
+				a.Name LIKE @p2 OR
+				s.Location LIKE @p2 OR
+				a.SportType LIKE @p2 OR
+				CAST(a.Capacity AS VARCHAR) LIKE @p2 OR
+				CONVERT(VARCHAR, aa.Date, 120) LIKE @p2 OR
+				CAST(aa.StartTime AS VARCHAR) LIKE @p2 OR
+				CAST(aa.EndTime AS VARCHAR) LIKE @p2 OR
+				CAST(a.Price AS VARCHAR) LIKE @p2 OR
+				CONVERT(VARCHAR, aa.CreatedDate, 120) LIKE @p2
 			)
 			ORDER BY %s %s 
-			OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
+			OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY
 		`, orderByColumn, sortDirection)
-		queryArgs = []interface{}{searchPattern, offset, params.PageSize}
+		queryArgs = []interface{}{params.UserID, searchPattern, offset, params.PageSize}
 	} else {
 		countQuery = `
 			SELECT COUNT(*) 
 			FROM ArenaAvailability aa
-			WHERE aa.IsDeleted = 0 AND aa.AvailabilityDone = 0
+			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
+				AND br.BookieID = @p1 AND br.IsDeleted = 0
+			WHERE aa.IsDeleted = 0 
+			AND aa.AvailabilityDone = 0
+			AND br.BookingRequestId IS NULL
 		`
-		countArgs = []interface{}{}
+		countArgs = []interface{}{params.UserID}
 
 		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForUser(sortColumn)
@@ -345,11 +355,15 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			FROM ArenaAvailability aa
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
-			WHERE aa.IsDeleted = 0 AND aa.AvailabilityDone = 0
+			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
+				AND br.BookieID = @p1 AND br.IsDeleted = 0
+			WHERE aa.IsDeleted = 0 
+			AND aa.AvailabilityDone = 0
+			AND br.BookingRequestId IS NULL
 			ORDER BY %s %s 
-			OFFSET @p1 ROWS FETCH NEXT @p2 ROWS ONLY
+			OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
 		`, orderByColumn, sortDirection)
-		queryArgs = []interface{}{offset, params.PageSize}
+		queryArgs = []interface{}{params.UserID, offset, params.PageSize}
 	}
 
 	// Get total count
@@ -366,9 +380,9 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		// Recalculate offset and query args if page number was adjusted
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
-			queryArgs[1] = offset
+			queryArgs[2] = offset
 		} else {
-			queryArgs[0] = offset
+			queryArgs[1] = offset
 		}
 	}
 
