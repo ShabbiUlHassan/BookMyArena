@@ -1,10 +1,8 @@
--- Create Database (run this separately if database doesn't exist)
--- CREATE DATABASE BookMyArena;
+
 
 USE BookMyArena;
 GO
 
--- Users Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Users' AND xtype='U')
 CREATE TABLE Users (
     UserId INT PRIMARY KEY IDENTITY(1,1),
@@ -16,7 +14,6 @@ CREATE TABLE Users (
 );
 GO
 
--- Stadiums Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stadiums' AND xtype='U')
 CREATE TABLE Stadiums (
     StadiumId INT PRIMARY KEY IDENTITY(1,1),
@@ -28,7 +25,6 @@ CREATE TABLE Stadiums (
 );
 GO
 
--- Arenas Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Arenas' AND xtype='U')
 CREATE TABLE Arenas (
     ArenaId INT PRIMARY KEY IDENTITY(1,1),
@@ -43,7 +39,6 @@ CREATE TABLE Arenas (
 );
 GO
 
--- Bookings Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Bookings' AND xtype='U')
 CREATE TABLE Bookings (
     BookingId INT PRIMARY KEY IDENTITY(1,1),
@@ -58,7 +53,6 @@ CREATE TABLE Bookings (
 );
 GO
 
--- Sessions Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Sessions' AND xtype='U')
 CREATE TABLE Sessions (
     SessionId INT PRIMARY KEY IDENTITY(1,1),
@@ -69,7 +63,6 @@ CREATE TABLE Sessions (
 );
 GO
 
--- BookingRequest Table
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BookingRequest' AND xtype='U')
 CREATE TABLE BookingRequest (
     BookingRequestId INT PRIMARY KEY IDENTITY(1,1),
@@ -90,7 +83,6 @@ CREATE TABLE BookingRequest (
 );
 GO
 
--- Indexes for better performance
 CREATE INDEX IX_Stadiums_OwnerId ON Stadiums(OwnerId);
 CREATE INDEX IX_Arenas_StadiumId ON Arenas(StadiumId);
 CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);

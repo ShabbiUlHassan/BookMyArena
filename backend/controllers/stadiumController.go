@@ -61,7 +61,6 @@ func GetStadiums(w http.ResponseWriter, r *http.Request) {
 	var stadiums []models.Stadium
 	var err error
 
-	// If user is owner, return only their stadiums; otherwise return all
 	if user.Role == "Owner" {
 		stadiums, err = services.GetStadiumsByOwner(user.UserID)
 	} else {

@@ -9,14 +9,13 @@ import (
 )
 
 func CreateBookingRequest(userID int, req models.CreateBookingRequestRequest) (*models.BookingRequest, error) {
-	// Begin transaction
+	
 	tx, err := config.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Validate and retrieve availability information
 	var availabilityDone bool
 	var isDeleted bool
 	var arenaID int
@@ -45,7 +44,6 @@ func CreateBookingRequest(userID int, req models.CreateBookingRequestRequest) (*
 		return nil, fmt.Errorf("failed to verify availability: %w", err)
 	}
 
-	// Validate availability is still open
 	if availabilityDone {
 		return nil, errors.New("availability slot is already booked")
 	}
@@ -54,7 +52,6 @@ func CreateBookingRequest(userID int, req models.CreateBookingRequestRequest) (*
 		return nil, errors.New("availability slot has been deleted")
 	}
 
-	// Check for duplicate booking request for the same availability by the same user
 	var existingCount int
 	err = tx.QueryRow(`
 		SELECT COUNT(*) 
@@ -71,7 +68,6 @@ func CreateBookingRequest(userID int, req models.CreateBookingRequestRequest) (*
 		return nil, errors.New("you have already requested this availability slot")
 	}
 
-	// Insert booking request
 	result := tx.QueryRow(`
 		INSERT INTO BookingRequest (
 			BookieID, OwnersId, ArenaID, Price, RStatus, 
@@ -104,7 +100,6 @@ func CreateBookingRequest(userID int, req models.CreateBookingRequestRequest) (*
 
 	bookingRequest.AvailabilityId = availabilityIdStr
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
@@ -162,7 +157,6 @@ func GetBookingRequestDetails(availabilityId string) (*models.UserAvailabilityWi
 	return &details, nil
 }
 
-// getOrderByColumnForBookingRequest maps frontend sort column names to actual SQL column/expression
 func getOrderByColumnForBookingRequest(sortColumn string) string {
 	columnMap := map[string]string{
 		"StadiumName": "s.Name",
@@ -178,11 +172,11 @@ func getOrderByColumnForBookingRequest(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "br.CreatedDate" // default
+	return "br.CreatedDate" 
 }
 
 func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (*models.PaginatedBookingRequests, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	validSortColumns := map[string]bool{
 		"StadiumName": true, "ArenaName": true, "Date": true, "StartTime": true,
@@ -192,13 +186,11 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		sortColumn = "CreatedDate"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -209,10 +201,8 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE clause for count and main query
 	var countQuery string
 	var query string
 	var countArgs []interface{}
@@ -242,7 +232,6 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		`
 		countArgs = []interface{}{params.UserID, searchPattern}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForBookingRequest(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -287,7 +276,6 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		`
 		countArgs = []interface{}{params.UserID}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForBookingRequest(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -314,18 +302,16 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		queryArgs = []interface{}{params.UserID, offset, params.PageSize}
 	}
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset and query args if page number was adjusted
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
 			queryArgs[2] = offset
@@ -334,7 +320,6 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 		}
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query booking requests: %w", err)
@@ -378,7 +363,7 @@ func GetUserBookingRequestsPaginated(params models.BookingRequestSearchParams) (
 }
 
 func DeleteBookingRequest(bookingRequestID int, userID int, userRole string) error {
-	// Get booking request details
+	
 	var bookieID int
 	var ownersID int
 	var status string
@@ -396,25 +381,24 @@ func DeleteBookingRequest(bookingRequestID int, userID int, userRole string) err
 		return fmt.Errorf("failed to verify booking request: %w", err)
 	}
 
-	// Determine which soft delete flag to set based on user role
 	var updateQuery string
 	if userRole == "Owner" {
-		// Owner is deleting - verify ownership
+		
 		if ownersID != userID {
 			return errors.New("you don't have permission to delete this booking request")
 		}
-		// Set IsDeletedOwner flag
+		
 		updateQuery = `
 			UPDATE BookingRequest 
 			SET IsDeletedOwner = 1 
 			WHERE BookingRequestId = @p1
 		`
 	} else {
-		// User is deleting - verify they are the bookie
+		
 		if bookieID != userID {
 			return errors.New("you don't have permission to delete this booking request")
 		}
-		// Set IsDeletedUser flag
+		
 		updateQuery = `
 			UPDATE BookingRequest 
 			SET IsDeletedUser = 1 
@@ -422,7 +406,6 @@ func DeleteBookingRequest(bookingRequestID int, userID int, userRole string) err
 		`
 	}
 
-	// Soft delete based on role
 	_, err = config.DB.Exec(updateQuery, bookingRequestID)
 
 	if err != nil {
@@ -432,7 +415,6 @@ func DeleteBookingRequest(bookingRequestID int, userID int, userRole string) err
 	return nil
 }
 
-// getOrderByColumnForOwnerBookingRequest maps frontend sort column names to actual SQL column/expression
 func getOrderByColumnForOwnerBookingRequest(sortColumn string) string {
 	columnMap := map[string]string{
 		"StadiumName": "s.Name",
@@ -449,11 +431,11 @@ func getOrderByColumnForOwnerBookingRequest(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "br.CreatedDate" // default
+	return "br.CreatedDate" 
 }
 
 func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchParams) (*models.PaginatedOwnerBookingRequests, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	validSortColumns := map[string]bool{
 		"StadiumName": true, "ArenaName": true, "Location": true, "Date": true, "StartTime": true,
@@ -463,13 +445,11 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		sortColumn = "CreatedDate"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -480,10 +460,8 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE clause for count and main query
 	var countQuery string
 	var query string
 	var countArgs []interface{}
@@ -516,7 +494,6 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		`
 		countArgs = []interface{}{params.OwnerID, searchPattern}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForOwnerBookingRequest(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -567,7 +544,6 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		`
 		countArgs = []interface{}{params.OwnerID}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForOwnerBookingRequest(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -597,18 +573,16 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		queryArgs = []interface{}{params.OwnerID, offset, params.PageSize}
 	}
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset and query args if page number was adjusted
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
 			queryArgs[2] = offset
@@ -617,7 +591,6 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 		}
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query booking requests: %w", err)
@@ -663,19 +636,17 @@ func GetOwnerBookingRequestsPaginated(params models.OwnerBookingRequestSearchPar
 }
 
 func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus string) error {
-	// Validate status
+	
 	if newStatus != "Booked" && newStatus != "Declined" {
 		return errors.New("invalid status. Must be 'Booked' or 'Declined'")
 	}
 
-	// Begin transaction
 	tx, err := config.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Verify ownership and current status
 	var currentOwnerID int
 	var currentStatus string
 	var availabilityId string
@@ -693,17 +664,14 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 		return fmt.Errorf("failed to verify booking request: %w", err)
 	}
 
-	// Verify ownership
 	if currentOwnerID != ownerID {
 		return errors.New("you don't have permission to update this booking request")
 	}
 
-	// Prevent status updates on non-pending requests
 	if currentStatus != "Pending" {
 		return errors.New("can only update booking requests with Pending status")
 	}
 
-	// Update booking request status
 	_, err = tx.Exec(`
 		UPDATE BookingRequest 
 		SET RStatus = @p1 
@@ -714,7 +682,6 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 		return fmt.Errorf("failed to update booking request status: %w", err)
 	}
 
-	// If status is "Booked", mark related availability as unavailable and create payment record
 	if newStatus == "Booked" {
 		_, err = tx.Exec(`
 			UPDATE ArenaAvailability 
@@ -726,7 +693,6 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 			return fmt.Errorf("failed to update availability: %w", err)
 		}
 
-		// Create payment record
 		_, err = tx.Exec(`
 			INSERT INTO Payments (BookingRequestID, IsPaid, PaidDate, CreatedBy, IsDeleted)
 			VALUES (@p1, 0, NULL, @p2, 0)
@@ -737,7 +703,6 @@ func UpdateBookingRequestStatus(bookingRequestID int, ownerID int, newStatus str
 		}
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}

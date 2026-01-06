@@ -9,14 +9,13 @@ import (
 )
 
 func CreateArena(stadiumID int, req models.CreateArenaRequest) (*models.Arena, error) {
-	// Verify stadium exists
+	
 	var exists int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM Stadiums WHERE StadiumId = @p1", stadiumID).Scan(&exists)
 	if err != nil || exists == 0 {
 		return nil, errors.New("stadium not found")
 	}
 
-	// Verify stadium ownership if needed (can be done via middleware)
 	if req.StadiumID != stadiumID {
 		return nil, errors.New("stadium ID mismatch")
 	}
@@ -50,7 +49,7 @@ func GetArenaByID(arenaID int) (*models.Arena, error) {
 }
 
 func UpdateArena(arenaID int, req models.CreateArenaRequest) (*models.Arena, error) {
-	// Verify arena exists
+	
 	var exists int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM Arenas WHERE ArenaId = @p1", arenaID).Scan(&exists)
 	if err != nil || exists == 0 {
@@ -72,7 +71,7 @@ func UpdateArena(arenaID int, req models.CreateArenaRequest) (*models.Arena, err
 }
 
 func DeleteArena(arenaID int) error {
-	// Check if arena has any bookings
+	
 	var bookingCount int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM Bookings WHERE ArenaId = @p1 AND Status IN ('Pending', 'Confirmed')", arenaID).Scan(&bookingCount)
 	if err != nil {
@@ -83,7 +82,6 @@ func DeleteArena(arenaID int) error {
 		return errors.New("cannot delete arena with active bookings")
 	}
 
-	// Delete the arena
 	_, err = config.DB.Exec("DELETE FROM Arenas WHERE ArenaId = @p1", arenaID)
 	if err != nil {
 		return err
@@ -116,7 +114,7 @@ func GetArenasByStadium(stadiumID int) ([]models.Arena, error) {
 }
 
 func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.PaginatedArenas, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	validSortColumns := map[string]bool{
 		"Name": true, "SportType": true, "Capacity": true,
@@ -126,13 +124,11 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 		sortColumn = "CreatedAt"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -143,10 +139,8 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 		params.PageSize = 100
 	}
 
-	// Calculate pagination first
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE clause for count and main query
 	var countQuery string
 	var query string
 	var countArgs []interface{}
@@ -154,9 +148,7 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 
 	if params.SearchText != "" {
 		searchPattern := "%" + params.SearchText + "%"
-		// Search across all columns: Name, SportType, Capacity, SlotDuration, Price, CreatedAt (as string)
-		// Note: For numeric columns (Capacity, SlotDuration, Price), we'll search the string representation
-		// For CreatedAt, we'll search formatted date string
+
 		countQuery = "SELECT COUNT(*) FROM Arenas WHERE StadiumId = @p1 AND (" +
 			"Name LIKE @p2 OR " +
 			"SportType LIKE @p2 OR " +
@@ -182,18 +174,16 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 		queryArgs = []interface{}{params.StadiumID, offset, params.PageSize}
 	}
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset and query args if page number was adjusted
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
 			queryArgs[2] = offset
@@ -202,7 +192,6 @@ func GetArenasByStadiumPaginated(params models.ArenaSearchParams) (*models.Pagin
 		}
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, err

@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - BookMyArena</title>
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/png" href="../images/logo.png">
-    <!-- Bootstrap CSS -->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -27,13 +27,12 @@
     </nav>
 
     <div class="dashboard-layout">
-        <!-- Sidebar Container - populated by navigation.js -->
+        
         <div id="sidebar-container"></div>
 
-        <!-- Main Content -->
         <main class="dashboard-content">
             <div id="ownerDashboard" style="display: none;">
-                <!-- Home Section -->
+                
                 <div id="homeSection" class="dashboard-section">
                     <h2>Owner Dashboard</h2>
                     
@@ -44,15 +43,6 @@
                     </section>
                 </div>
 
-                <!-- Booking Section -->
-                <!-- <div id="bookingSection" class="dashboard-section" style="display: none;">
-                    <h2>My Bookings</h2>
-                    <section class="section">
-                        <div id="ownerBookings" class="table-container"></div>
-                    </section>
-                </div> -->
-
-                <!-- Requests Section -->
                 <div id="requestsSection" class="dashboard-section" style="display: none;">
                     <h2>Booking & Requests</h2>
                     <section class="section">
@@ -60,7 +50,6 @@
                     </section>
                 </div>
 
-                <!-- Payments Section -->
                 <div id="paymentsSection" class="dashboard-section" style="display: none;">
                     <h2>Payments</h2>
                     <section class="section">
@@ -73,8 +62,7 @@
                 <section class="section">
                     <h2>Available Arena Slots</h2>
                     <p>Browse and book available time slots from all owners.</p>
-                    
-                    <!-- Search Section -->
+
                     <div class="card mb-3">
                         <div class="card-body">
                             <div class="row g-3 align-items-end">
@@ -92,18 +80,15 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Table Container -->
+
                     <div id="userAvailabilityTable" class="table-container"></div>
-                    
-                    <!-- Pagination Footer -->
+
                     <div id="userAvailabilityPagination" class="arena-table-footer"></div>
                 </section>
             </div>
         </main>
     </div>
 
-    <!-- Add Stadium Modal -->
     <div id="addStadiumModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeAddStadiumModal()">&times;</span>
@@ -122,7 +107,6 @@
         </div>
     </div>
 
-    <!-- Add Arena Modal -->
     <div class="modal fade" id="addArenaModal" tabindex="-1" aria-labelledby="addArenaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -185,7 +169,6 @@
         </div>
     </div>
 
-    <!-- Booking Confirmation Modal -->
     <div class="modal fade" id="bookingConfirmationModal" tabindex="-1" aria-labelledby="bookingConfirmationModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -242,7 +225,6 @@
         </div>
     </div>
 
-    <!-- Set Availability Modal -->
     <div class="modal fade" id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -254,7 +236,7 @@
                     <form id="availabilityForm">
                         <input type="hidden" id="availabilityArenaId">
                         <div id="availabilitySlots">
-                            <!-- Availability slots will be added here dynamically -->
+                            
                         </div>
                         <div class="mt-3">
                             <button type="button" class="btn btn-secondary" id="addDateBtn" onclick="addAvailabilitySlot()">
@@ -271,7 +253,6 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>

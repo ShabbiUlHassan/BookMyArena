@@ -1,11 +1,10 @@
-// Booking functionality for search page
+
 let selectedArena = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load all arenas on page load
+    
     loadAllArenas();
 
-    // Booking form handler
     document.getElementById('bookingForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const arenaId = parseInt(document.getElementById('bookingArenaId').value);
@@ -43,7 +42,6 @@ async function loadAllArenas() {
     }
 }
 
-// Make loadAllArenas globally accessible
 window.loadAllArenas = loadAllArenas;
 window.searchArenas = searchArenas;
 
@@ -54,7 +52,7 @@ async function searchArenas() {
     const container = document.getElementById('searchResults');
     
     try {
-        // If no filters, load all arenas
+        
         if (!location && !sportType && !date) {
             loadAllArenas();
             return;
@@ -72,8 +70,7 @@ async function searchArenas() {
 
 function displaySearchResults(arenas) {
     const container = document.getElementById('searchResults');
-    
-    // Check if arenas is an array
+
     if (!Array.isArray(arenas)) {
         console.error('Arenas is not an array:', arenas);
         container.innerHTML = '<p class="error-message">Error: Invalid data received from server.</p>';
@@ -86,7 +83,7 @@ function displaySearchResults(arenas) {
     }
 
     container.innerHTML = arenas.map(arena => {
-        // Format available hours (typically 8 AM to 10 PM)
+        
         const availableHours = `8:00 AM - 10:00 PM`;
         const price = arena.price ? arena.price.toFixed(2) : '0.00';
         
@@ -118,7 +115,6 @@ async function showBookingModal(arenaId) {
             <p><strong>Price:</strong> $${arena.price} per slot</p>
         `;
 
-        // Set default date to tomorrow if date filter is set
         const dateFilter = document.getElementById('dateFilter').value;
         const bookingDate = document.getElementById('bookingDate');
         if (dateFilter) {
@@ -141,7 +137,6 @@ function closeBookingModal() {
     document.getElementById('bookingForm').reset();
 }
 
-// Close modal when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('bookingModal');
     if (event.target == modal) {

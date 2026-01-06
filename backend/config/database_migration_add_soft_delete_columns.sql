@@ -1,10 +1,8 @@
--- Migration: Add IsDeletedUser and IsDeletedOwner columns to BookingRequest table
--- This allows soft delete functionality where users and owners can hide booking requests from their view
+
 
 USE BookMyArena;
 GO
 
--- Add IsDeletedUser column if it doesn't exist
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BookingRequest') AND name = 'IsDeletedUser')
 BEGIN
     ALTER TABLE BookingRequest
@@ -17,7 +15,6 @@ BEGIN
 END
 GO
 
--- Add IsDeletedOwner column if it doesn't exist
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BookingRequest') AND name = 'IsDeletedOwner')
 BEGIN
     ALTER TABLE BookingRequest

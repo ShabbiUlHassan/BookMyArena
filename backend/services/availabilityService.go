@@ -11,14 +11,13 @@ import (
 )
 
 func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int) error {
-	// Begin transaction
+	
 	tx, err := config.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Verify arena ownership
 	var stadiumId int
 	err = tx.QueryRow(`
 		SELECT StadiumId 
@@ -34,7 +33,6 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 		return fmt.Errorf("failed to verify arena ownership: %w", err)
 	}
 
-	// Validate maximum 10 records
 	if len(req.Availabilities) > 10 {
 		return errors.New("maximum 10 availability records allowed per request")
 	}
@@ -43,9 +41,8 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 		return errors.New("at least one availability slot is required")
 	}
 
-	// Validate and insert each availability slot
 	for _, slot := range req.Availabilities {
-		// Parse times
+		
 		startTime, err := time.Parse("15:04", slot.StartTime)
 		if err != nil {
 			return fmt.Errorf("invalid start time format: %s", slot.StartTime)
@@ -56,18 +53,15 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 			return fmt.Errorf("invalid end time format: %s", slot.EndTime)
 		}
 
-		// Validate start time is before end time
 		if !startTime.Before(endTime) {
 			return errors.New("start time must be earlier than end time")
 		}
 
-		// Parse date
 		date, err := time.Parse("2006-01-02", slot.Date)
 		if err != nil {
 			return fmt.Errorf("invalid date format: %s", slot.Date)
 		}
 
-		// Check for overlapping time slots on the same date
 		var overlapCount int
 		err = tx.QueryRow(`
 			SELECT COUNT(*) 
@@ -89,8 +83,6 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 			return fmt.Errorf("overlapping time slot detected for date %s", slot.Date)
 		}
 
-		// Insert availability record
-		// Note: Id is auto-generated (NEWID()), so we don't include it
 		_, err = tx.Exec(`
 			INSERT INTO ArenaAvailability (
 				Date, StartTime, EndTime, StadiumId, ArenaId, 
@@ -105,7 +97,6 @@ func CreateArenaAvailabilities(req models.CreateAvailabilityRequest, ownerId int
 		}
 	}
 
-	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
@@ -155,7 +146,6 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 			return nil, fmt.Errorf("failed to scan availability: %w", err)
 		}
 
-		// Parse date
 		availability.Date, err = time.Parse("2006-01-02", dateStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
@@ -180,7 +170,6 @@ func GetArenaAvailabilities(arenaId int) ([]models.ArenaAvailability, error) {
 	return availabilities, nil
 }
 
-// getOrderByColumn maps frontend sort column names to actual SQL column/expression
 func getOrderByColumn(sortColumn string) string {
 	columnMap := map[string]string{
 		"Date":        "aa.Date",
@@ -195,10 +184,9 @@ func getOrderByColumn(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "aa.CreatedDate" // default
+	return "aa.CreatedDate" 
 }
 
-// getOrderByColumnForUser maps frontend sort column names to actual SQL column/expression for user availability
 func getOrderByColumnForUser(sortColumn string) string {
 	columnMap := map[string]string{
 		"StadiumName": "s.Name",
@@ -216,11 +204,11 @@ func getOrderByColumnForUser(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "aa.CreatedDate" // default
+	return "aa.CreatedDate" 
 }
 
 func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) (*models.PaginatedUserAvailabilities, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	validSortColumns := map[string]bool{
 		"StadiumName": true, "ArenaName": true, "Location": true, "SportType": true, "Capacity": true,
@@ -230,13 +218,11 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		sortColumn = "CreatedDate"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -247,10 +233,8 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE clause for count and main query
 	var countQuery string
 	var query string
 	var countArgs []interface{}
@@ -282,7 +266,6 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		`
 		countArgs = []interface{}{params.UserID, searchPattern}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForUser(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -335,7 +318,6 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		`
 		countArgs = []interface{}{params.UserID}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumnForUser(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -366,18 +348,16 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		queryArgs = []interface{}{params.UserID, offset, params.PageSize}
 	}
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset and query args if page number was adjusted
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
 			queryArgs[2] = offset
@@ -386,7 +366,6 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 		}
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query availabilities: %w", err)
@@ -433,7 +412,7 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 }
 
 func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*models.PaginatedAvailabilities, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	validSortColumns := map[string]bool{
 		"Date": true, "StartTime": true, "EndTime": true,
@@ -443,13 +422,11 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		sortColumn = "CreatedDate"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -460,10 +437,8 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE clause for count and main query
 	var countQuery string
 	var query string
 	var countArgs []interface{}
@@ -491,7 +466,6 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		`
 		countArgs = []interface{}{params.OwnerId, searchPattern}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumn(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -534,7 +508,6 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		`
 		countArgs = []interface{}{params.OwnerId}
 
-		// Map sort column to actual SQL column/expression
 		orderByColumn := getOrderByColumn(sortColumn)
 		query = fmt.Sprintf(`
 			SELECT 
@@ -561,18 +534,16 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		queryArgs = []interface{}{params.OwnerId, offset, params.PageSize}
 	}
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset and query args if page number was adjusted
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		if params.SearchText != "" {
 			queryArgs[2] = offset
@@ -581,7 +552,6 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 		}
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query availabilities: %w", err)
@@ -632,8 +602,7 @@ func GetOwnerAvailabilitiesPaginated(params models.AvailabilitySearchParams) (*m
 }
 
 func DeleteArenaAvailability(availabilityId string, ownerId int) error {
-	// Verify ownership and check if reserved
-	// Note: Id is UNIQUEIDENTIFIER in SQL Server, convert the column to VARCHAR for comparison
+
 	var availabilityDone bool
 	err := config.DB.QueryRow(`
 		SELECT AvailabilityDone
@@ -647,12 +616,10 @@ func DeleteArenaAvailability(availabilityId string, ownerId int) error {
 		return fmt.Errorf("failed to verify ownership: %w", err)
 	}
 
-	// Check if reserved (AvailabilityDone = 1)
 	if availabilityDone {
 		return errors.New("cannot delete reserved availability")
 	}
 
-	// Soft delete - convert the UNIQUEIDENTIFIER column to VARCHAR for comparison
 	_, err = config.DB.Exec(`
 		UPDATE ArenaAvailability 
 		SET IsDeleted = 1 

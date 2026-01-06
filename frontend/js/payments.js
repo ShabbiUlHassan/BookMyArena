@@ -1,5 +1,5 @@
-// Payment functionality for User and Owner roles
-let userRole = 'User'; // Will be set on initialization
+
+let userRole = 'User'; 
 let paidState = {
     pageNumber: 1,
     pageSize: 10,
@@ -28,7 +28,6 @@ let paidSearchTimeout = null;
 let payableSearchTimeout = null;
 let currentPaymentId = null;
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
     const userStr = sessionStorage.getItem('user');
     if (!userStr) {
@@ -36,24 +35,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Detect user role
     try {
         const user = JSON.parse(userStr);
         userRole = user.role || 'User';
-        
-        // Update UI labels based on role
+
         if (userRole === 'Owner') {
-            // Update tab labels
+            
             const paidTab = document.getElementById('paid-tab');
             const payableTab = document.getElementById('payable-tab');
             if (paidTab) paidTab.textContent = 'Received';
             if (payableTab) payableTab.textContent = 'Pending';
-            
-            // Update total labels - find the parent strong elements and update their first text node
+
             const paidPaneStrong = document.querySelector('#paid-pane .card-body strong.text-primary');
             const payablePaneStrong = document.querySelector('#payable-pane .card-body strong.text-primary');
             if (paidPaneStrong) {
-                // Keep the span but update the text before it
+                
                 const span = paidPaneStrong.querySelector('span#totalPaid');
                 if (span) {
                     paidPaneStrong.innerHTML = 'Total Received: $<span id="totalPaid">0.00</span>';
@@ -65,8 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     payablePaneStrong.innerHTML = 'Total Pending: $<span id="totalPayable">0.00</span>';
                 }
             }
-            
-            // Update search placeholders to include booker info
+
             const paidSearch = document.getElementById('paidSearch');
             const payableSearch = document.getElementById('payableSearch');
             if (paidSearch) paidSearch.placeholder = 'Search by Date, Time, Stadium, Arena, Booker Name, Booker Email...';
@@ -76,18 +71,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error parsing user data:', error);
     }
 
-    // Set default date filter to current month
     const now = new Date();
     const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     const dateFilterStart = document.getElementById('dateFilterStart');
     if (dateFilterStart) {
         dateFilterStart.value = currentMonth;
     }
-    
-    // Initialize placeholder visibility
+
     toggleMonthPlaceholder();
-    
-    // Set date range for current month
+
     paidState.startDate = currentMonth + '-01';
     payableState.startDate = currentMonth + '-01';
     const startDate = new Date(currentMonth + '-01');
@@ -97,7 +89,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     paidState.endDate = currentMonth + '-' + lastDay;
     payableState.endDate = currentMonth + '-' + lastDay;
 
-    // Load initial data
     try {
         await loadPaidPayments();
         await loadPayablePayments();
@@ -114,19 +105,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Format time string to remove milliseconds (15:32:00.0000000 -> 15:32:00)
 function formatTime(timeStr) {
     if (!timeStr || timeStr === 'N/A') return timeStr;
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
-// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
 function formatDate(dateStr) {
     if (!dateStr || dateStr === 'N/A') return dateStr;
     
     try {
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        if (isNaN(date.getTime())) return dateStr; 
         
         const day = date.getDate();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -135,11 +124,10 @@ function formatDate(dateStr) {
         
         return `${day}-${month}-${year}`;
     } catch (error) {
-        return dateStr; // Return original if parsing fails
+        return dateStr; 
     }
 }
 
-// Date filter handlers
 function handleDateFilterChange() {
     const startMonth = document.getElementById('dateFilterStart').value;
     const endMonth = document.getElementById('dateFilterEnd').value;
@@ -197,11 +185,9 @@ function toggleMonthPlaceholder() {
     }
 }
 
-// Tab switching
 function switchToPaidTab() {}
 function switchToPayableTab() {}
 
-// Paid Payments Functions
 async function loadPaidPayments(pageNumber = paidState.pageNumber, pageSize = paidState.pageSize, searchText = paidState.searchText, sortColumn = paidState.sortColumn, sortDirection = paidState.sortDirection) {
     const tableContainer = document.getElementById('paidTable');
     const paginationContainer = document.getElementById('paidPagination');
@@ -277,7 +263,6 @@ function displayPaidPayments(result) {
         return `handlePaidSort('${col}', '${newDirection}')`;
     };
 
-    // Build table headers based on role
     let tableHeaders = `
         <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
         <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
@@ -340,7 +325,6 @@ function displayPaidPayments(result) {
     `;
     tableContainer.innerHTML = table;
 
-    // Display pagination
     if (paginationContainer && result.totalPages > 0) {
         paginationContainer.innerHTML = `
             <div class="pagination-info">
@@ -416,7 +400,6 @@ function handlePaidSearchInput(event) {
     }, 500);
 }
 
-// Payable Payments Functions
 async function loadPayablePayments(pageNumber = payableState.pageNumber, pageSize = payableState.pageSize, searchText = payableState.searchText, sortColumn = payableState.sortColumn, sortDirection = payableState.sortDirection) {
     const tableContainer = document.getElementById('payableTable');
     const paginationContainer = document.getElementById('payablePagination');
@@ -492,7 +475,6 @@ function displayPayablePayments(result) {
         return `handlePayableSort('${col}', '${newDirection}')`;
     };
 
-    // Build table headers based on role
     let tableHeaders = `
         <th class="sortable-header" onclick="${getSortHandler('StadiumName')}">Stadium ${getSortIcon('StadiumName')}</th>
         <th class="sortable-header" onclick="${getSortHandler('ArenaName')}">Arena ${getSortIcon('ArenaName')}</th>
@@ -566,7 +548,6 @@ function displayPayablePayments(result) {
     `;
     tableContainer.innerHTML = table;
 
-    // Display pagination
     if (paginationContainer && result.totalPages > 0) {
         paginationContainer.innerHTML = `
             <div class="pagination-info">
@@ -642,7 +623,6 @@ function handlePayableSearchInput(event) {
     }, 500);
 }
 
-// Payment Confirmation Modal
 function showPaymentConfirmation(paymentId, stadiumName, arenaName, date, startTime, endTime, totalDuration, price) {
     currentPaymentId = paymentId;
     const modalBody = document.getElementById('paymentConfirmationBody');
@@ -699,15 +679,13 @@ async function confirmPayment() {
 
     try {
         await API.processPayment(currentPaymentId);
-        
-        // Close modal
+
         const modalElement = document.getElementById('paymentConfirmationModal');
         const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) {
             modal.hide();
         }
-        
-        // Reload both tabs to reflect the payment
+
         await loadPayablePayments();
         await loadPaidPayments();
         
@@ -722,7 +700,6 @@ async function confirmPayment() {
     }
 }
 
-// Make functions globally accessible
 window.handleDateFilterChange = handleDateFilterChange;
 window.resetDateFilter = resetDateFilter;
 window.switchToPaidTab = switchToPaidTab;

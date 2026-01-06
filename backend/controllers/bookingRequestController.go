@@ -81,7 +81,6 @@ func GetUserBookingRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
 	if sortColumn == "" {
@@ -166,7 +165,6 @@ func GetOwnerBookingRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
 	if sortColumn == "" {

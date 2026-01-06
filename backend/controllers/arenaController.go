@@ -36,9 +36,6 @@ func CreateArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify stadium ownership - VerifyStadiumOwner is in stadiumService but accessible via services package
-	// Since all service files are in the same package, we need to check if VerifyStadiumOwner exists
-	// Let's use the same approach as CreateArena uses
 	if !services.VerifyStadiumOwner(req.StadiumID, user.UserID) {
 		utils.RespondWithError(w, http.StatusForbidden, "you don't own this stadium")
 		return
@@ -74,12 +71,11 @@ func GetArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get slot availability if date is provided
 	dateStr := r.URL.Query().Get("date")
 	if dateStr != "" {
 		date, err := time.Parse("2006-01-02", dateStr)
 		if err == nil {
-			// Get bookings for this date
+			
 			bookings, _ := services.GetBookingsByArena(arenaID)
 			slotAvailability := generateSlotAvailability(arena, date, bookings)
 			response := map[string]interface{}{
@@ -126,14 +122,12 @@ func UpdateArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify arena ownership via stadium
 	arena, err := services.GetArenaByID(arenaID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusNotFound, "arena not found")
 		return
 	}
 
-	// Verify stadium ownership
 	if !services.VerifyStadiumOwner(arena.StadiumID, user.UserID) {
 		utils.RespondWithError(w, http.StatusForbidden, "you don't own this arena")
 		return
@@ -168,14 +162,12 @@ func DeleteArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify arena ownership via stadium
 	arena, err := services.GetArenaByID(arenaID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusNotFound, "arena not found")
 		return
 	}
 
-	// Verify stadium ownership
 	if !services.VerifyStadiumOwner(arena.StadiumID, user.UserID) {
 		utils.RespondWithError(w, http.StatusForbidden, "you don't own this arena")
 		return
@@ -204,7 +196,6 @@ func GetArenasByStadium(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get query parameters for pagination, search, and sorting
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
 	sortDirection := r.URL.Query().Get("sortDirection")
@@ -260,7 +251,6 @@ func SearchArenas(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Use the version that includes location information
 	arenas, err := services.GetArenasByFiltersWithLocation(location, sportType, date)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -283,7 +273,6 @@ func GetAllArenas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return empty array if no arenas found, not error
 	w.Header().Set("Content-Type", "application/json")
 	if arenas == nil {
 		arenas = []models.ArenaWithLocation{}
@@ -292,7 +281,7 @@ func GetAllArenas(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateSlotAvailability(arena *models.Arena, date time.Time, bookings []models.Booking) []models.SlotAvailability {
-	// Generate slots for the day (e.g., 8 AM to 10 PM, based on slot duration)
+	
 	startHour := 8
 	endHour := 22
 	slotDuration := time.Duration(arena.SlotDuration) * time.Minute
@@ -306,13 +295,12 @@ func generateSlotAvailability(arena *models.Arena, date time.Time, bookings []mo
 	for currentSlot.Add(slotDuration).Before(dayEnd) || currentSlot.Add(slotDuration).Equal(dayEnd) {
 		slotEnd := currentSlot.Add(slotDuration)
 
-		// Check if this slot conflicts with any booking
 		available := true
 		for _, booking := range bookings {
 			if booking.Status == "Cancelled" {
 				continue
 			}
-			// Check if slots overlap
+			
 			if !(slotEnd.Before(booking.SlotStart) || currentSlot.After(booking.SlotEnd)) {
 				available = false
 				break

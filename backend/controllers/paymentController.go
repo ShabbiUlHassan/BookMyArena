@@ -24,7 +24,6 @@ func GetUserPayments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	isPaidStr := r.URL.Query().Get("isPaid")
 	var isPaid *bool
 	if isPaidStr != "" {
@@ -128,13 +127,11 @@ func GetOwnerPayments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify user is Owner
 	if user.Role != "Owner" {
 		utils.RespondWithError(w, http.StatusForbidden, "only owners can access this endpoint")
 		return
 	}
 
-	// Parse query parameters
 	isPaidStr := r.URL.Query().Get("isPaid")
 	var isPaid *bool
 	if isPaidStr != "" {

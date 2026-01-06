@@ -13,7 +13,7 @@ var DB *sql.DB
 func InitDB() {
 	connectionString := os.Getenv("DB_CONNECTION_STRING")
 	if connectionString == "" {
-		// Default connection string for SQL Server
+
 		connectionString = "server=localhost,1433;database=BookMyArena;trusted_connection=yes;encrypt=disable"
 	}
 

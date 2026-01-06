@@ -12,7 +12,7 @@ type BookingRequest struct {
 	CreatedBy        int       `json:"createdBy" db:"CreatedBy"`
 	CreatedDate      time.Time `json:"createdDate" db:"CreatedDate"`
 	IsDeleted        bool      `json:"isDeleted" db:"IsDeleted"`
-	AvailabilityId   string    `json:"availabilityId" db:"AvailabilityId"` // UNIQUEIDENTIFIER as string
+	AvailabilityId   string    `json:"availabilityId" db:"AvailabilityId"` 
 }
 
 type CreateBookingRequestRequest struct {

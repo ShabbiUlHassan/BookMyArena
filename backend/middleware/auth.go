@@ -14,15 +14,14 @@ const UserContextKey contextKey = "user"
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get session token from cookie or Authorization header
-		var token string
 		
-		// Try cookie first
+		var token string
+
 		cookie, err := r.Cookie("session_token")
 		if err == nil {
 			token = cookie.Value
 		} else {
-			// Try Authorization header
+			
 			authHeader := r.Header.Get("Authorization")
 			if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 				token = authHeader[7:]
@@ -34,14 +33,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Validate session
 		user, err := services.ValidateSession(token)
 		if err != nil {
 			respondWithError(w, http.StatusUnauthorized, "unauthorized: invalid or expired session")
 			return
 		}
 
-		// Add user to context
 		ctx := context.WithValue(r.Context(), UserContextKey, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
