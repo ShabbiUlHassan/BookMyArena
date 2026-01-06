@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Requests - BookMyArena</title>
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/png" href="../images/logo.png">
-    <!-- Bootstrap CSS -->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <!-- Navbar -->
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="dashboard.html">
@@ -28,16 +28,14 @@
     </nav>
 
     <div class="dashboard-layout">
-        <!-- Sidebar Container - populated by navigation.js -->
+        
         <div id="sidebar-container"></div>
 
-        <!-- Main Content -->
         <main class="dashboard-content">
                 <section class="section">
                     <h2>Booking & Requests</h2>
                     <p>Review and manage incoming booking requests for your arenas.</p>
-                    
-                    <!-- Search Section -->
+
                     <div class="card mb-3">
                         <div class="card-body">
                             <div class="row g-3 align-items-end">
@@ -72,17 +70,14 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Table Container -->
+
                     <div id="ownerBookingRequestTable" class="table-container"></div>
-                    
-                    <!-- Pagination Footer -->
+
                     <div id="ownerBookingRequestPagination" class="arena-table-footer"></div>
                 </section>
         </main>
     </div>
 
-    <!-- Confirmation Modal -->
     <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -101,24 +96,22 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
     <script src="../js/alertModal.js"></script>
     <script>
-        // Owner Booking Requests State
         let ownerBookingRequestState = {
             pageNumber: 1,
             pageSize: 10,
             searchText: '',
             sortColumn: 'CreatedDate',
             sortDirection: 'DESC',
-            statusFilter: null // 'Booked' for Accept, 'Declined' for Decline, null for all
+            statusFilter: null 
         };
         let ownerBookingRequestSearchTimeout = null;
-        let allBookingRequests = []; // Store all fetched requests for client-side filtering
+        let allBookingRequests = []; 
 
         async function loadOwnerBookingRequests(pageNumber = ownerBookingRequestState.pageNumber, pageSize = ownerBookingRequestState.pageSize, searchText = ownerBookingRequestState.searchText, sortColumn = ownerBookingRequestState.sortColumn, sortDirection = ownerBookingRequestState.sortDirection, statusFilter = ownerBookingRequestState.statusFilter) {
             const tableContainer = document.getElementById('ownerBookingRequestTable');
@@ -129,35 +122,29 @@
             tableContainer.innerHTML = '<p>Loading booking requests...</p>';
 
             try {
-                // Fetch all data for client-side filtering by status
-                // Using a large page size to get all records, then filter client-side
                 const result = await API.getOwnerBookingRequests({
                     searchText,
                     sortColumn,
                     sortDirection,
                     pageNumber: 1,
-                    pageSize: 1000 // Get all records for filtering
+                    pageSize: 1000 
                 });
 
                 console.log('Loaded owner booking requests:', result);
 
-                // Store all requests
                 allBookingRequests = result.bookingRequests || [];
 
-                // Apply status filter if set
                 let filteredRequests = allBookingRequests;
                 if (statusFilter) {
                     filteredRequests = allBookingRequests.filter(br => (br.status || 'N/A') === statusFilter);
                 }
 
-                // Apply pagination to filtered results
                 const startIndex = (pageNumber - 1) * pageSize;
                 const endIndex = startIndex + pageSize;
                 const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
                 const totalCount = filteredRequests.length;
                 const totalPages = Math.ceil(totalCount / pageSize);
 
-                // Create result object with filtered and paginated data
                 const filteredResult = {
                     bookingRequests: paginatedRequests,
                     totalCount: totalCount,
@@ -184,20 +171,18 @@
             }
         }
 
-        // Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
         function formatTime(timeStr) {
             if (!timeStr || timeStr === 'N/A') return timeStr;
-            // Remove milliseconds/microseconds (decimal point and everything after)
+            
             return timeStr.replace(/\.\d+/g, '').trim();
         }
 
-        // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
         function formatDate(dateStr) {
             if (!dateStr || dateStr === 'N/A') return dateStr;
             
             try {
                 const date = new Date(dateStr);
-                if (isNaN(date.getTime())) return dateStr; // Invalid date
+                if (isNaN(date.getTime())) return dateStr; 
                 
                 const day = date.getDate();
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -206,7 +191,7 @@
                 
                 return `${day}-${month}-${year}`;
             } catch (error) {
-                return dateStr; // Return original if parsing fails
+                return dateStr; 
             }
         }
 
@@ -271,18 +256,16 @@
                             const bookingRequestId = br.bookingRequestId || 0;
                             const isPending = status === 'Pending';
                             const isBooked = status === 'Booked';
-                            
-                            // Check if date and endTime have passed for Booked status
+
                             let canDelete = true;
                             if (isBooked && originalDate !== 'N/A' && br.endTime) {
                                 try {
-                                    // Combine date and endTime to create a datetime
-                                    const rawEndTime = br.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
+                                    
+                                    const rawEndTime = br.endTime.replace(/\.\d+/g, '').trim(); 
                                     const dateTimeString = `${originalDate} ${rawEndTime}`;
                                     const bookingEndDateTime = new Date(dateTimeString);
                                     const currentDateTime = new Date();
-                                    
-                                    // Enable delete if current time has passed the booking end time
+
                                     canDelete = currentDateTime > bookingEndDateTime;
                                 } catch (e) {
                                     console.error('Error parsing date/time:', e);
@@ -334,7 +317,6 @@
             `;
             tableContainer.innerHTML = table;
 
-            // Display pagination
             if (paginationContainer && result.totalPages > 0) {
                 paginationContainer.innerHTML = `
                     <div class="pagination-info">
@@ -389,24 +371,20 @@
         }
 
         function handleStatusFilter(status) {
-            // Set filter (don't toggle - always set to the clicked status)
+            
             const newFilter = status;
-            
-            // Update button styles and clear filter button visibility
+
             updateFilterButtonStyles(newFilter);
-            
-            // Reload with new filter
+
             loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
         }
 
         function clearStatusFilter() {
-            // Remove filter
+            
             const newFilter = null;
-            
-            // Update button styles and clear filter button visibility
+
             updateFilterButtonStyles(newFilter);
-            
-            // Reload without filter
+
             loadOwnerBookingRequests(1, ownerBookingRequestState.pageSize, ownerBookingRequestState.searchText, ownerBookingRequestState.sortColumn, ownerBookingRequestState.sortDirection, newFilter);
         }
 
@@ -417,7 +395,7 @@
             const clearBtn = document.getElementById('clearFilterBtn');
             
             if (acceptBtn && declineBtn && pendingBtn && clearBtn) {
-                // Always set opacity to 1 for all filter buttons
+                
                 acceptBtn.style.opacity = '1';
                 declineBtn.style.opacity = '1';
                 pendingBtn.style.opacity = '1';
@@ -446,7 +424,7 @@
             }
         }
 
-        let pendingAction = null; // Store the pending action (bookingRequestId and status)
+        let pendingAction = null; 
 
         function showConfirmationModal(bookingRequestId, status, actionType) {
             pendingAction = {
@@ -492,8 +470,7 @@
             }
 
             const { bookingRequestId, status, actionType } = pendingAction;
-            
-            // Close modal
+
             const modalElement = document.getElementById('confirmationModal');
             const modal = bootstrap.Modal.getInstance(modalElement);
             if (modal) {
@@ -517,7 +494,6 @@
             }
         }
 
-        // Make functions globally accessible
         window.handleOwnerBookingRequestSearch = handleOwnerBookingRequestSearch;
         window.handleOwnerBookingRequestSearchInput = handleOwnerBookingRequestSearchInput;
         window.handleOwnerBookingRequestSort = handleOwnerBookingRequestSort;
@@ -530,27 +506,24 @@
         window.deleteBookingRequest = deleteBookingRequest;
         window.executePendingAction = executePendingAction;
 
-        // Load data on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set up confirmation button handler
+            
             const confirmBtn = document.getElementById('confirmActionBtn');
             if (confirmBtn) {
                 confirmBtn.addEventListener('click', executePendingAction);
             }
-            // Check authentication
+            
             const user = await API.getCurrentUser();
             if (!user) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            // Only owners can access this page
             if (user.role !== 'Owner') {
                 window.location.href = 'dashboard.html';
                 return;
             }
 
-            // Initialize filter button styles
             updateFilterButtonStyles(null);
 
             await loadOwnerBookingRequests();

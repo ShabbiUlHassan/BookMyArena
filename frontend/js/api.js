@@ -1,6 +1,6 @@
-// API utility functions
+
 const API = {
-    baseURL: '', // Relative URL since frontend and backend are on same server
+    baseURL: '', 
 
     async request(endpoint, options = {}) {
         const url = this.baseURL + endpoint;
@@ -8,10 +8,9 @@ const API = {
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'include', // Include cookies
+            credentials: 'include', 
         };
 
-        // Add token from sessionStorage if available
         const token = sessionStorage.getItem('token');
         if (token) {
             defaultOptions.headers['Authorization'] = `Bearer ${token}`;
@@ -43,7 +42,6 @@ const API = {
         }
     },
 
-    // Auth endpoints
     async signup(userData) {
         return this.request('/api/signup', {
             method: 'POST',
@@ -70,7 +68,6 @@ const API = {
         });
     },
 
-    // Stadium endpoints
     async createStadium(stadiumData) {
         return this.request('/api/stadiums', {
             method: 'POST',
@@ -90,7 +87,6 @@ const API = {
         });
     },
 
-    // Arena endpoints
     async createArena(arenaData) {
         return this.request('/api/arenas', {
             method: 'POST',
@@ -156,7 +152,6 @@ const API = {
         });
     },
 
-    // Booking endpoints
     async createBooking(bookingData) {
         return this.request('/api/bookings', {
             method: 'POST',
@@ -190,7 +185,6 @@ const API = {
         });
     },
 
-    // Availability endpoints
     async createArenaAvailability(arenaId, availabilityData) {
         return this.request(`/api/arenas/${arenaId}/availability`, {
             method: 'POST',
@@ -288,7 +282,6 @@ const API = {
         });
     },
 
-    // Payment endpoints
     async getUserPayments(params) {
         const queryParams = new URLSearchParams();
         if (params.isPaid !== undefined) queryParams.append('isPaid', params.isPaid ? '1' : '0');

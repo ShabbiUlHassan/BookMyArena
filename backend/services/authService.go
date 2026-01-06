@@ -25,7 +25,7 @@ func VerifyPassword(hashedPassword, password string) bool {
 }
 
 func CreateUser(req models.SignupRequest) (*models.User, error) {
-	// Check if email already exists
+	
 	var count int
 	err := config.DB.QueryRow("SELECT COUNT(*) FROM Users WHERE Email = @p1", req.Email).Scan(&count)
 	if err != nil {
@@ -35,18 +35,15 @@ func CreateUser(req models.SignupRequest) (*models.User, error) {
 		return nil, errors.New("email already exists")
 	}
 
-	// Validate role
 	if req.Role != "Owner" && req.Role != "User" {
 		return nil, errors.New("invalid role. Must be 'Owner' or 'User'")
 	}
 
-	// Hash password
 	passwordHash, err := HashPassword(req.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	// Insert user
 	result := config.DB.QueryRow(
 		"INSERT INTO Users (FullName, Email, PasswordHash, Role) OUTPUT INSERTED.UserId, INSERTED.FullName, INSERTED.Email, INSERTED.Role, INSERTED.CreatedAt VALUES (@p1, @p2, @p3, @p4)",
 		req.FullName, req.Email, passwordHash, req.Role,
@@ -120,7 +117,7 @@ func ValidateSession(token string) (*models.User, error) {
 	}
 
 	if time.Now().After(expiresAt) {
-		// Delete expired session
+		
 		config.DB.Exec("DELETE FROM Sessions WHERE Token = @p1", token)
 		return nil, errors.New("session expired")
 	}

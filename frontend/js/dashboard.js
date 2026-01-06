@@ -1,4 +1,4 @@
-// Dashboard functionality
+
 let currentStadiumId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadUserDashboard();
     }
 
-    // Add stadium form handler
     document.getElementById('addStadiumForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('stadiumName').value;
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add/Edit arena form handler
     document.getElementById('addArenaForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = document.getElementById('addArenaForm');
@@ -61,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await API.createArena(arenaData);
             }
             closeAddArenaModal();
-            // Reload arenas for the specific stadium
+            
             const state = stadiumArenaState[stadiumId] || {};
             loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
         } catch (error) {
@@ -69,7 +67,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Availability form submission
     const availabilityForm = document.getElementById('availabilityForm');
     if (availabilityForm) {
         availabilityForm.addEventListener('submit', async (e) => {
@@ -96,8 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     hasError = true;
                     return;
                 }
-                
-                // Validate end time is at least 60 minutes after start time
+
                 const [startHours, startMinutes] = startTime.split(':').map(Number);
                 const [endHours, endMinutes] = endTime.split(':').map(Number);
                 
@@ -129,15 +125,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 
                 showAlertModal('Availability created successfully!', 'success');
-                
-                // Close modal
+
                 const modalElement = document.getElementById('availabilityModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
                 if (modal) {
                     modal.hide();
                 }
-                
-                // Reset form after modal is hidden
+
                 setTimeout(() => {
                     availabilityForm.reset();
                     document.getElementById('availabilitySlots').innerHTML = '';
@@ -149,7 +143,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Reset availability modal when it's hidden
     const availabilityModalElement = document.getElementById('availabilityModal');
     if (availabilityModalElement) {
         availabilityModalElement.addEventListener('hidden.bs.modal', function () {
@@ -162,7 +155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Booking confirmation form handler
     const bookingConfirmationForm = document.getElementById('bookingConfirmationForm');
     if (bookingConfirmationForm) {
         bookingConfirmationForm.addEventListener('submit', async (e) => {
@@ -179,15 +171,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await API.createBookingRequest(availabilityId);
                 
                 showAlertModal('Booking request created successfully!', 'success');
-                
-                // Close modal
+
                 const modalElement = document.getElementById('bookingConfirmationModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
                 if (modal) {
                     modal.hide();
                 }
-                
-                // Reload the availability table to reflect the booking
+
                 await loadUserAvailabilityTable();
             } catch (error) {
                 showAlertModal('Error creating booking request: ' + error.message, 'error');
@@ -235,13 +225,11 @@ function displayStadiums(stadiums) {
         </div>
     `).join('');
 
-    // Load arenas for each stadium
     stadiums.forEach(stadium => {
         loadArenasForStadium(stadium.stadiumId);
     });
 }
 
-// Stadium arena state for pagination, search, and sorting
 const stadiumArenaState = {};
 
 async function loadArenasForStadium(stadiumId, pageNumber = 1, pageSize = 10, searchText = '', sortColumn = 'CreatedAt', sortDirection = 'DESC') {
@@ -264,7 +252,6 @@ async function loadArenasForStadium(stadiumId, pageNumber = 1, pageSize = 10, se
 
         console.log(`Arenas loaded for stadium ${stadiumId}:`, result);
 
-        // Store state
         if (!stadiumArenaState[stadiumId]) {
             stadiumArenaState[stadiumId] = {};
         }
@@ -296,29 +283,24 @@ function displayArenasTable(stadiumId, result) {
 
     console.log(`Displaying arenas table for stadium ${stadiumId}:`, result);
 
-    // Get user role from session storage
     const userStr = sessionStorage.getItem('user');
     const ownerRole = userStr ? JSON.parse(userStr).role : '';
 
-    // Show/hide arena search based on whether there are arenas
     const arenaSearchContainer = document.getElementById(`arena-search-container-${stadiumId}`);
-    
-    // If no arenas, don't render the table and hide the search input
+
     if (!result || !result.arenas || result.arenas.length === 0) {
         tableContainer.innerHTML = '';
         if (paginationContainer) paginationContainer.innerHTML = '';
         if (arenaSearchContainer) arenaSearchContainer.style.display = 'none';
         return;
     }
-    
-    // Show the arena search if there are arenas
+
     if (arenaSearchContainer) arenaSearchContainer.style.display = 'block';
 
     const state = stadiumArenaState[stadiumId];
     const sortColumn = state ? state.sortColumn : 'CreatedAt';
     const sortDirection = state ? state.sortDirection : 'DESC';
 
-    // Generate sort icon
         const getSortIcon = (col) => {
             if (col !== sortColumn) {
                 return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
@@ -328,7 +310,6 @@ function displayArenasTable(stadiumId, result) {
                 : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
         };
 
-    // Generate sort handler
     const getSortHandler = (col) => {
         const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
         return `handleArenaSort(${stadiumId}, '${col}', '${newDirection}')`;
@@ -382,7 +363,6 @@ function displayArenasTable(stadiumId, result) {
     `;
     tableContainer.innerHTML = table;
 
-    // Display pagination
     if (paginationContainer && result.totalPages > 0) {
         const state = stadiumArenaState[stadiumId];
         paginationContainer.innerHTML = `
@@ -417,7 +397,6 @@ function handleArenaSearch(stadiumId, event) {
     }
 }
 
-// Debounced search for input events
 let searchTimeout = {};
 function handleArenaSearchInput(stadiumId, event) {
     clearTimeout(searchTimeout[stadiumId]);
@@ -426,7 +405,7 @@ function handleArenaSearchInput(stadiumId, event) {
         const searchText = searchInput ? searchInput.value : '';
         const state = stadiumArenaState[stadiumId] || {};
         loadArenasForStadium(stadiumId, 1, state.pageSize || 10, searchText, state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
-    }, 500); // 500ms delay
+    }, 500); 
 }
 
 function handleArenaSort(stadiumId, sortColumn, sortDirection) {
@@ -459,7 +438,6 @@ function toggleStadiumCard(stadiumId) {
     }
 }
 
-// Make functions globally accessible
 window.handleArenaSearch = handleArenaSearch;
 window.handleArenaSearchInput = handleArenaSearchInput;
 window.handleArenaSort = handleArenaSort;
@@ -499,8 +477,7 @@ function closeAddArenaModal() {
     form.reset();
     delete form.dataset.arenaId;
     delete form.dataset.isEdit;
-    
-    // Reset modal title and button text
+
     const modalTitle = document.querySelector('#addArenaModal .modal-title');
     const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
     if (modalTitle) modalTitle.textContent = 'Add Arena';
@@ -551,12 +528,12 @@ function displayOwnerBookings(bookings) {
 async function updateBookingStatus(bookingId, status) {
     try {
         await API.updateBookingStatus(bookingId, status);
-        // Reload page if on booking or requests page
+        
         const currentPage = window.location.pathname;
         if (currentPage.includes('booking.html') || currentPage.includes('requests.html')) {
             window.location.reload();
         } else {
-            // If on dashboard, reload bookings if visible
+            
             const bookingSection = document.getElementById('bookingSection');
             if (bookingSection && bookingSection.style.display !== 'none') {
                 loadOwnerBookings();
@@ -590,9 +567,9 @@ async function loadOwnerRequests() {
     container.innerHTML = '<p>Loading requests...</p>';
     
     try {
-        // Get all bookings and filter for pending ones (requests)
+        
         const bookings = await API.getBookings();
-        // Filter for pending bookings (these are the requests)
+        
         const pendingBookings = bookings.filter(booking => booking.status === 'Pending');
         displayOwnerRequests(pendingBookings);
     } catch (error) {
@@ -672,14 +649,12 @@ function displayUserBookings(bookings) {
         console.error('userBookings container not found!');
         return;
     }
-    
-    // Check if bookings is null or undefined
+
     if (!bookings) {
         container.innerHTML = '<p class="error-message">Error: No data received from server.</p>';
         return;
     }
-    
-    // Check if bookings is an array
+
     if (!Array.isArray(bookings)) {
         console.error('Bookings is not an array:', bookings);
         container.innerHTML = '<p class="error-message">Error: Invalid data received from server.</p>';
@@ -706,7 +681,7 @@ function displayUserBookings(bookings) {
             </thead>
             <tbody>
                 ${bookings.map(booking => {
-                    // Add null checks for safety
+                    
                     const arenaName = booking.arenaName || 'N/A';
                     const stadiumName = booking.stadiumName || 'N/A';
                     const location = booking.location || 'N/A';
@@ -750,10 +725,8 @@ async function cancelUserBooking(bookingId) {
     }
 }
 
-// Make cancelUserBooking globally accessible
 window.cancelUserBooking = cancelUserBooking;
 
-// User availability state for pagination, search, and sorting
 let userAvailabilityState = {
     pageNumber: 1,
     pageSize: 10,
@@ -762,7 +735,6 @@ let userAvailabilityState = {
     sortDirection: 'DESC'
 };
 
-// Debounced search timeout for user availability
 let userAvailabilitySearchTimeout = null;
 
 async function loadUserDashboard() {
@@ -790,25 +762,23 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
             sortColumn,
             sortDirection,
             pageNumber: 1,
-            pageSize: 1000 // Get all records for filtering
+            pageSize: 1000 
         });
 
-        // Filter out past records (date and endTime must be greater than current date and time)
         const currentDateTime = new Date();
         const allAvailabilities = result.availabilities || [];
         console.log('Total availabilities from API:', allAvailabilities.length);
         
         const futureAvailabilities = allAvailabilities.filter(av => {
-            // Parse the availability end date/time
+            
             const availabilityEndDateTime = parseAvailabilityDateTime(av.date, av.endTime);
             
             if (!availabilityEndDateTime) {
-                // Exclude records with invalid or missing date/time
+                
                 console.log('Excluding record with invalid date/time:', av);
                 return false;
             }
-            
-            // Only include if availability end time is in the future
+
             const isFuture = availabilityEndDateTime > currentDateTime;
             if (!isFuture) {
                 console.log('Excluding past record:', av.date, av.endTime);
@@ -818,8 +788,6 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
         
         console.log('Future availabilities after filtering:', futureAvailabilities.length);
 
-        // Apply pagination to filtered results
-        // Ensure pageSize is a valid number
         const validPageSize = parseInt(pageSize, 10) || 10;
         const validPageNumber = parseInt(pageNumber, 10) || 1;
         
@@ -839,7 +807,6 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
             paginatedCount: paginatedAvailabilities.length
         });
 
-        // Create filtered result object
         const filteredResult = {
             availabilities: paginatedAvailabilities,
             totalCount: totalCount,
@@ -848,7 +815,6 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
             pageSize: validPageSize
         };
 
-        // Update state
         userAvailabilityState = {
             pageNumber: validPageNumber,
             pageSize: validPageSize,
@@ -866,27 +832,23 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
     }
 }
 
-// Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
 function formatTime(timeStr) {
     if (!timeStr || timeStr === 'N/A') return timeStr;
-    // Remove milliseconds/microseconds (decimal point and everything after)
+    
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
-// Parse date and time to create a Date object for comparison
 function parseAvailabilityDateTime(dateStr, timeStr) {
     if (!dateStr || !timeStr || dateStr === 'N/A' || timeStr === 'N/A') {
         return null;
     }
     
     try {
-        // Remove milliseconds from time if present
+        
         const cleanTime = timeStr.replace(/\.\d+/g, '').trim();
-        
-        // Date format from SQL Server CONVERT(VARCHAR, Date, 120) is YYYY-MM-DD
+
         const cleanDate = dateStr.trim();
-        
-        // Parse date components
+
         const dateParts = cleanDate.split('-');
         if (dateParts.length !== 3) {
             console.warn('Invalid date format:', cleanDate);
@@ -894,10 +856,9 @@ function parseAvailabilityDateTime(dateStr, timeStr) {
         }
         
         const year = parseInt(dateParts[0], 10);
-        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+        const month = parseInt(dateParts[1], 10) - 1; 
         const day = parseInt(dateParts[2], 10);
-        
-        // Parse time components
+
         const timeParts = cleanTime.split(':');
         if (timeParts.length < 2) {
             console.warn('Invalid time format:', cleanTime);
@@ -907,8 +868,7 @@ function parseAvailabilityDateTime(dateStr, timeStr) {
         const hours = parseInt(timeParts[0], 10);
         const minutes = parseInt(timeParts[1], 10);
         const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
-        
-        // Create date object using local time
+
         const dateTime = new Date(year, month, day, hours, minutes, seconds);
         
         if (isNaN(dateTime.getTime())) {
@@ -923,13 +883,12 @@ function parseAvailabilityDateTime(dateStr, timeStr) {
     }
 }
 
-// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
 function formatDate(dateStr) {
     if (!dateStr || dateStr === 'N/A') return dateStr;
     
     try {
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        if (isNaN(date.getTime())) return dateStr; 
         
         const day = date.getDate();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -938,7 +897,7 @@ function formatDate(dateStr) {
         
         return `${day}-${month}-${year}`;
     } catch (error) {
-        return dateStr; // Return original if parsing fails
+        return dateStr; 
     }
 }
 
@@ -964,7 +923,6 @@ function displayUserAvailabilityTable(result) {
     const sortColumn = userAvailabilityState.sortColumn || 'CreatedDate';
     const sortDirection = userAvailabilityState.sortDirection || 'DESC';
 
-    // Generate sort icon
         const getSortIcon = (col) => {
             if (col !== sortColumn) {
                 return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
@@ -974,7 +932,6 @@ function displayUserAvailabilityTable(result) {
                 : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
         };
 
-    // Generate sort handler
     const getSortHandler = (col) => {
         const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
         return `handleUserAvailabilitySort('${col}', '${newDirection}')`;
@@ -1038,7 +995,6 @@ function displayUserAvailabilityTable(result) {
     `;
     tableContainer.innerHTML = table;
 
-    // Display pagination
     if (paginationContainer && result.totalPages > 0) {
         const startRecord = result.totalCount > 0 ? ((result.pageNumber - 1) * result.pageSize) + 1 : 0;
         const endRecord = Math.min(result.pageNumber * result.pageSize, result.totalCount);
@@ -1088,7 +1044,7 @@ function handleUserAvailabilitySearchInput(event) {
         const searchInput = document.getElementById('userAvailabilitySearch');
         const searchText = searchInput ? searchInput.value : '';
         loadUserAvailabilityTable(1, userAvailabilityState.pageSize || 10, searchText, userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
-    }, 500); // 500ms delay
+    }, 500); 
 }
 
 function handleUserAvailabilitySort(sortColumn, sortDirection) {
@@ -1105,24 +1061,22 @@ function handleUserAvailabilityPageSizeChange(pageSize) {
         console.error('Invalid page size:', pageSize);
         return;
     }
-    // Reset to page 1 when changing page size
+    
     loadUserAvailabilityTable(1, newPageSize, userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
 }
 
-// Format time string to remove milliseconds/microseconds (01:45:00.0000000000000 -> 01:45:00)
 function formatTimeForBooking(timeStr) {
     if (!timeStr || timeStr === 'N/A') return timeStr;
-    // Remove milliseconds/microseconds (decimal point and everything after)
+    
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
-// Format date string to date-Month-YYYY format (e.g., 02-Jan-2026)
 function formatDateForBooking(dateStr) {
     if (!dateStr || dateStr === 'N/A') return dateStr;
     
     try {
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        if (isNaN(date.getTime())) return dateStr; 
         
         const day = String(date.getDate()).padStart(2, '0');
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1131,19 +1085,18 @@ function formatDateForBooking(dateStr) {
         
         return `${day}-${month}-${year}`;
     } catch (error) {
-        return dateStr; // Return original if parsing fails
+        return dateStr; 
     }
 }
 
 async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, endTime) {
-    // Store the availability ID for the confirmation modal
+    
     document.getElementById('bookingAvailabilityId').value = availabilityId;
     
     try {
-        // Fetch booking details from backend
-        const details = await API.getBookingRequestDetails(availabilityId);
         
-        // Populate the confirmation modal with booking details
+        const details = await API.getBookingRequestDetails(availabilityId);
+
         document.getElementById('bookingStadiumName').textContent = details.stadiumName || 'N/A';
         document.getElementById('bookingArenaName').textContent = details.arenaName || 'N/A';
         document.getElementById('bookingDate').textContent = formatDateForBooking(details.date || 'N/A');
@@ -1151,8 +1104,7 @@ async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, en
         document.getElementById('bookingEndTime').textContent = formatTimeForBooking(details.endTime || 'N/A');
         document.getElementById('bookingTotalDuration').textContent = (details.totalDuration || 0) + ' minutes';
         document.getElementById('bookingPrice').textContent = '$' + (details.price ? details.price.toFixed(2) : '0.00');
-        
-        // Show the confirmation modal
+
         const modalElement = document.getElementById('bookingConfirmationModal');
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: true,
@@ -1165,7 +1117,6 @@ async function bookAvailabilitySlot(availabilityId, arenaId, date, startTime, en
     }
 }
 
-// Make functions globally accessible
 window.handleUserAvailabilitySearch = handleUserAvailabilitySearch;
 window.handleUserAvailabilitySearchInput = handleUserAvailabilitySearchInput;
 window.handleUserAvailabilitySort = handleUserAvailabilitySort;
@@ -1198,14 +1149,12 @@ function displayAvailableArenas(arenas) {
         console.error('availableArenas container not found!');
         return;
     }
-    
-    // Check if arenas is null or undefined
+
     if (!arenas) {
         container.innerHTML = '<p class="error-message">Error: No data received from server.</p>';
         return;
     }
-    
-    // Check if arenas is an array
+
     if (!Array.isArray(arenas)) {
         console.error('Arenas is not an array:', arenas);
         container.innerHTML = '<p class="error-message">Error: Invalid data received from server.</p>';
@@ -1217,7 +1166,6 @@ function displayAvailableArenas(arenas) {
         return;
     }
 
-    // Format available hours (typically 8 AM to 10 PM)
     const availableHours = `8:00 AM - 10:00 PM`;
 
     const table = `
@@ -1271,26 +1219,22 @@ function displayAvailableArenas(arenas) {
 async function editArena(arenaId, stadiumId) {
     try {
         const arena = await API.getArena(arenaId);
-        
-        // Populate the form with arena data
+
         document.getElementById('arenaStadiumId').value = stadiumId;
         document.getElementById('arenaName').value = arena.name || '';
         document.getElementById('arenaSportType').value = arena.sportType || '';
         document.getElementById('arenaCapacity').value = arena.capacity || '';
         document.getElementById('arenaSlotDuration').value = arena.slotDuration || '';
         document.getElementById('arenaPrice').value = arena.price || '';
-        
-        // Store the arena ID for update
+
         document.getElementById('addArenaForm').dataset.arenaId = arenaId;
         document.getElementById('addArenaForm').dataset.isEdit = 'true';
-        
-        // Change modal title and button text
+
         const modalTitle = document.querySelector('#addArenaModal .modal-title');
         const submitButton = document.querySelector('#addArenaForm button[type="submit"]');
         if (modalTitle) modalTitle.textContent = 'Edit Arena';
         if (submitButton) submitButton.textContent = 'Update Arena';
-        
-        // Show the modal
+
         const modalElement = document.getElementById('addArenaModal');
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: true,
@@ -1310,7 +1254,7 @@ async function deleteArena(arenaId, stadiumId) {
     
     try {
         await API.deleteArena(arenaId);
-        // Reload arenas for the stadium
+        
         const state = stadiumArenaState[stadiumId] || {};
         loadArenasForStadium(stadiumId, state.pageNumber || 1, state.pageSize || 10, state.searchText || '', state.sortColumn || 'CreatedAt', state.sortDirection || 'DESC');
     } catch (error) {
@@ -1324,19 +1268,16 @@ function showAvailabilityModal(arenaId, stadiumId) {
     availabilitySlotCount = 0;
     document.getElementById('availabilityArenaId').value = arenaId;
     document.getElementById('availabilitySlots').innerHTML = '';
-    
-    // Add first slot
+
     addAvailabilitySlot();
     
     const modalElement = document.getElementById('availabilityModal');
-    
-    // Dispose of any existing modal instance to avoid backdrop issues
+
     const existingModal = bootstrap.Modal.getInstance(modalElement);
     if (existingModal) {
         existingModal.dispose();
     }
-    
-    // Create new modal instance
+
     const modal = new bootstrap.Modal(modalElement, {
         backdrop: true,
         keyboard: true,
@@ -1355,12 +1296,10 @@ function addAvailabilitySlot() {
     availabilitySlotCount++;
     const slotId = `slot-${availabilitySlotCount}`;
     const slotsContainer = document.getElementById('availabilitySlots');
-    
-    // Set today's date as default (YYYY-MM-DD format)
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
-    // Set minimum date to today (YYYY-MM-DD format)
+
     const minDate = todayStr;
     
     const slotHtml = `
@@ -1393,34 +1332,29 @@ function addAvailabilitySlot() {
     `;
     
     slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
-    
-    // Add event listeners for time validation
+
     const slotElement = document.getElementById(slotId);
     const startTimeSelect = slotElement.querySelector('.availability-start-time');
     const endTimeSelect = slotElement.querySelector('.availability-end-time');
-    
-    // Generate and populate both Start Time and End Time dropdown options
+
     const timeOptions = generateTimeOptions();
     timeOptions.forEach(time => {
-        // Add to Start Time dropdown
+        
         const startOption = document.createElement('option');
         startOption.value = time;
         startOption.textContent = time;
         startTimeSelect.appendChild(startOption);
-        
-        // Add to End Time dropdown
+
         const endOption = document.createElement('option');
         endOption.value = time;
         endOption.textContent = time;
         endTimeSelect.appendChild(endOption);
     });
-    
-    // When start time changes, update end time options
+
     startTimeSelect.addEventListener('change', function() {
         updateEndTimeOptions(slotElement);
     });
-    
-    // Update add button visibility
+
     const addBtn = document.getElementById('addDateBtn');
     if (availabilitySlotCount >= 10) {
         addBtn.style.display = 'none';
@@ -1429,7 +1363,6 @@ function addAvailabilitySlot() {
     }
 }
 
-// Generate time options for dropdown (every 15 minutes from 00:00 to 23:59)
 function generateTimeOptions() {
     const options = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -1441,19 +1374,17 @@ function generateTimeOptions() {
     return options;
 }
 
-// Update End Time dropdown options - disable times before Start Time + 60 minutes
 function updateEndTimeOptions(slotElement) {
     const startTimeSelect = slotElement.querySelector('.availability-start-time');
     const endTimeSelect = slotElement.querySelector('.availability-end-time');
     const validationMsg = slotElement.querySelector('.end-time-validation');
-    
-    // Remove existing validation message if present
+
     if (validationMsg) {
         validationMsg.remove();
     }
     
     if (!startTimeSelect.value) {
-        // If no start time selected, enable all options
+        
         Array.from(endTimeSelect.options).forEach(option => {
             if (option.value !== '') {
                 option.disabled = false;
@@ -1461,26 +1392,22 @@ function updateEndTimeOptions(slotElement) {
                 option.style.opacity = '1';
             }
         });
-        // Reset end time selection
+        
         endTimeSelect.value = '';
         return;
     }
-    
-    // Parse start time
+
     const [startHours, startMinutes] = startTimeSelect.value.split(':').map(Number);
     const startTotalMinutes = startHours * 60 + startMinutes;
-    
-    // Calculate minimum allowed end time (Start Time + 60 minutes)
+
     const minEndTotalMinutes = startTotalMinutes + 60;
-    
-    // Get current end time value before updating
+
     const currentEndTime = endTimeSelect.value;
-    
-    // Enable/disable options based on 60-minute rule
+
     let hasEnabledOptions = false;
     Array.from(endTimeSelect.options).forEach(option => {
         if (option.value === '') {
-            // Keep the empty/default option enabled
+            
             return;
         }
         
@@ -1498,16 +1425,14 @@ function updateEndTimeOptions(slotElement) {
             option.style.opacity = '0.5';
         }
     });
-    
-    // If current end time is now disabled, reset it
+
     if (currentEndTime) {
         const selectedOption = endTimeSelect.querySelector(`option[value="${currentEndTime}"]`);
         if (selectedOption && selectedOption.disabled) {
             endTimeSelect.value = '';
         }
     }
-    
-    // Show validation message if no options are available
+
     if (!hasEnabledOptions) {
         const validationDiv = document.createElement('div');
         validationDiv.className = 'end-time-validation text-danger small mt-1';
@@ -1521,14 +1446,12 @@ function removeAvailabilitySlot(slotId) {
     if (slot) {
         slot.remove();
         availabilitySlotCount--;
-        
-        // Update add button visibility
+
         const addBtn = document.getElementById('addDateBtn');
         if (availabilitySlotCount < 10) {
             addBtn.style.display = 'block';
         }
-        
-        // Renumber slots
+
         renumberAvailabilitySlots();
     }
 }
@@ -1549,26 +1472,23 @@ function showSection(section) {
     
     const user = JSON.parse(userStr);
     const role = user.role === 'Owner' ? 'owner' : 'user';
-    
-    // Remove active class from all nav links
+
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    
-    // Add active class to clicked link
+
     const activeLink = document.querySelector(`.nav-link[data-section="${section}"]`);
     if (activeLink) {
         activeLink.classList.add('active');
     }
     
     if (role === 'owner') {
-        // Hide all owner sections
+        
         document.getElementById('homeSection').style.display = 'none';
         document.getElementById('bookingSection').style.display = 'none';
         document.getElementById('requestsSection').style.display = 'none';
         document.getElementById('paymentsSection').style.display = 'none';
-        
-        // Show selected section
+
         if (section === 'home') {
             document.getElementById('homeSection').style.display = 'block';
         } else if (section === 'booking') {
@@ -1581,11 +1501,10 @@ function showSection(section) {
             document.getElementById('paymentsSection').style.display = 'block';
         }
     } else {
-        // Hide all user sections
+        
         document.getElementById('userHomeSection').style.display = 'none';
         document.getElementById('userBookingSection').style.display = 'none';
-        
-        // Show selected section
+
         if (section === 'home') {
             document.getElementById('userHomeSection').style.display = 'block';
             loadAvailableArenas();
@@ -1596,7 +1515,6 @@ function showSection(section) {
     }
 }
 
-// Make modal functions globally accessible
 window.showAddStadiumModal = showAddStadiumModal;
 window.closeAddStadiumModal = closeAddStadiumModal;
 window.showAddArenaModal = showAddArenaModal;
@@ -1607,11 +1525,9 @@ window.showAvailabilityModal = showAvailabilityModal;
 window.addAvailabilitySlot = addAvailabilitySlot;
 window.removeAvailabilitySlot = removeAvailabilitySlot;
 
-// Close modals when clicking outside (only for non-Bootstrap modals)
-// Bootstrap modals handle this automatically
 window.onclick = function(event) {
     const stadiumModal = document.getElementById('addStadiumModal');
-    // Note: arenaModal is now a Bootstrap modal, so it handles clicks automatically
+    
     if (event.target == stadiumModal) {
         closeAddStadiumModal();
     }

@@ -8,14 +8,13 @@ import (
 )
 
 func CreateBooking(userID int, req models.CreateBookingRequest) (*models.Booking, error) {
-	// Verify arena exists
+	
 	arena, err := GetArenaByID(req.ArenaID)
 	if err != nil {
 		return nil, errors.New("arena not found")
 	}
-	_ = arena // Use arena if needed for validation
+	_ = arena 
 
-	// Check slot availability
 	available, err := CheckSlotAvailability(req.ArenaID, req.SlotStart, req.SlotEnd)
 	if err != nil {
 		return nil, err
@@ -24,12 +23,10 @@ func CreateBooking(userID int, req models.CreateBookingRequest) (*models.Booking
 		return nil, errors.New("slot is not available")
 	}
 
-	// Validate slot times
 	if req.SlotEnd.Before(req.SlotStart) || req.SlotEnd.Equal(req.SlotStart) {
 		return nil, errors.New("invalid slot times")
 	}
 
-	// Create booking
 	result := config.DB.QueryRow(
 		"INSERT INTO Bookings (UserId, ArenaId, SlotStart, SlotEnd, Status) OUTPUT INSERTED.BookingId, INSERTED.UserId, INSERTED.ArenaId, INSERTED.SlotStart, INSERTED.SlotEnd, INSERTED.Status, INSERTED.CreatedAt VALUES (@p1, @p2, @p3, @p4, @p5)",
 		userID, req.ArenaID, req.SlotStart, req.SlotEnd, "Pending",
@@ -117,7 +114,7 @@ func GetBookingByID(bookingID int) (*models.Booking, error) {
 }
 
 func CancelBooking(bookingID, userID int) error {
-	// Verify booking belongs to user
+	
 	booking, err := GetBookingByID(bookingID)
 	if err != nil {
 		return err
@@ -127,7 +124,6 @@ func CancelBooking(bookingID, userID int) error {
 		return errors.New("unauthorized: booking does not belong to user")
 	}
 
-	// Check if booking can be cancelled (not already cancelled and not in the past)
 	if booking.Status == "Cancelled" {
 		return errors.New("booking is already cancelled")
 	}
@@ -145,24 +141,21 @@ func CancelBooking(bookingID, userID int) error {
 }
 
 func UpdateBookingStatus(bookingID int, status string, ownerID int) error {
-	// Verify status
+	
 	if status != "Confirmed" && status != "Cancelled" {
 		return errors.New("invalid status")
 	}
 
-	// Verify booking exists
 	booking, err := GetBookingByID(bookingID)
 	if err != nil {
 		return err
 	}
 
-	// Verify owner owns the arena (arenaService functions are accessible in same package)
 	arena, err := GetArenaByID(booking.ArenaID)
 	if err != nil {
 		return err
 	}
 
-	// Get stadium to verify ownership (stadiumService functions are accessible in same package)
 	stadium, err := GetStadiumByID(arena.StadiumID)
 	if err != nil {
 		return err

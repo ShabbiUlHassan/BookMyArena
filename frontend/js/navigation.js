@@ -1,4 +1,4 @@
-// Shared sidebar HTML generator and injector
+
 function initSidebar() {
     const currentPage = window.location.pathname.split('/').pop().split('.')[0];
     const sidebarContainer = document.getElementById('sidebar-container');
@@ -7,8 +7,7 @@ function initSidebar() {
         console.error('Sidebar container not found');
         return;
     }
-    
-    // Check user role first to determine which items to show
+
     const userStr = sessionStorage.getItem('user');
     let isOwner = false;
     if (userStr) {
@@ -47,22 +46,20 @@ function initSidebar() {
     sidebarContainer.innerHTML = sidebarHTML;
 }
 
-// Navigation highlighting based on current page (for compatibility)
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize sidebar if container exists
+    
     initSidebar();
     
     const currentPage = window.location.pathname;
     const pageName = currentPage.split('/').pop().split('.')[0];
-    
-    // Map page names to navigation links
+
     const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
     navLinks.forEach(link => {
         link.classList.remove('active');
         const href = link.getAttribute('href');
         if (href) {
             const linkPage = href.split('/').pop().split('.')[0];
-            // Match the current page with the link
+            
             if (linkPage === pageName) {
                 link.classList.add('active');
             }

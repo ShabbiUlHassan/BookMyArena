@@ -72,7 +72,6 @@ func GetOwnerAvailabilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
 	if sortColumn == "" {
@@ -152,7 +151,6 @@ func GetUserAvailabilities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
 	searchText := r.URL.Query().Get("searchText")
 	sortColumn := r.URL.Query().Get("sortColumn")
 	if sortColumn == "" {

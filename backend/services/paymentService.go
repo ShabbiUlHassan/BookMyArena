@@ -8,7 +8,6 @@ import (
 	"fmt"
 )
 
-// CreatePayment creates a new payment record for a booking request
 func CreatePayment(bookingRequestID int, userID int) error {
 	_, err := config.DB.Exec(`
 		INSERT INTO Payments (BookingRequestID, IsPaid, PaidDate, CreatedBy, IsDeleted)
@@ -22,7 +21,6 @@ func CreatePayment(bookingRequestID int, userID int) error {
 	return nil
 }
 
-// getOrderByColumnForPayment maps frontend sort column names to actual SQL column/expression
 func getOrderByColumnForPayment(sortColumn string) string {
 	columnMap := map[string]string{
 		"StadiumName": "s.Name",
@@ -36,12 +34,11 @@ func getOrderByColumnForPayment(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "aa.Date" // default
+	return "aa.Date" 
 }
 
-// GetUserPaymentsPaginated retrieves paginated payments for a user
 func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.PaginatedPayments, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	if sortColumn == "" {
 		sortColumn = "Date"
@@ -54,13 +51,11 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		sortColumn = "Date"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -71,23 +66,19 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE conditions and arguments
 	var whereConditions []string
 	var countArgs []interface{}
 	var queryArgs []interface{}
 	paramIndex := 1
 
-	// Base conditions (always present)
 	whereConditions = append(whereConditions, "p.IsDeleted = 0")
 	whereConditions = append(whereConditions, fmt.Sprintf("p.CreatedBy = @p%d", paramIndex))
 	countArgs = append(countArgs, params.UserID)
 	queryArgs = append(queryArgs, params.UserID)
 	paramIndex++
 
-	// IsPaid filter
 	if params.IsPaid != nil {
 		isPaidValue := 0
 		if *params.IsPaid {
@@ -99,7 +90,6 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		paramIndex++
 	}
 
-	// Date range filters
 	if params.StartDate != "" {
 		whereConditions = append(whereConditions, fmt.Sprintf("aa.Date >= @p%d", paramIndex))
 		countArgs = append(countArgs, params.StartDate)
@@ -113,7 +103,6 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		paramIndex++
 	}
 
-	// Search text filter
 	if params.SearchText != "" {
 		searchPattern := "%" + params.SearchText + "%"
 		searchParamIndex := paramIndex
@@ -130,13 +119,11 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		paramIndex++
 	}
 
-	// Build WHERE clause
 	whereClause := "WHERE " + whereConditions[0]
 	for i := 1; i < len(whereConditions); i++ {
 		whereClause += " AND " + whereConditions[i]
 	}
 
-	// Build count query
 	countQuery := `
 		SELECT COUNT(*) 
 		FROM Payments p
@@ -146,10 +133,8 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		INNER JOIN Stadiums s ON a.StadiumId = s.StadiumId
 		` + whereClause
 
-	// Map sort column to actual SQL column/expression
 	orderByColumn := getOrderByColumnForPayment(sortColumn)
 
-	// Build main query with pagination
 	query := fmt.Sprintf(`
 		SELECT 
 			p.PaymentID,
@@ -173,23 +158,20 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 
 	queryArgs = append(queryArgs, offset, params.PageSize)
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		queryArgs[len(queryArgs)-2] = offset
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query payments: %w", err)
@@ -235,7 +217,6 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 		PageSize:   params.PageSize,
 	}
 
-	// Add total based on IsPaid filter
 	if params.IsPaid != nil {
 		if *params.IsPaid {
 			result.TotalPaid = totalPrice
@@ -247,9 +228,8 @@ func GetUserPaymentsPaginated(params models.PaymentSearchParams) (*models.Pagina
 	return result, nil
 }
 
-// ProcessPayment updates a payment to mark it as paid
 func ProcessPayment(paymentID int, userID int) error {
-	// Verify payment exists and belongs to user
+	
 	var createdBy int
 	var isPaid bool
 	err := config.DB.QueryRow(`
@@ -273,7 +253,6 @@ func ProcessPayment(paymentID int, userID int) error {
 		return errors.New("payment is already processed")
 	}
 
-	// Update payment
 	_, err = config.DB.Exec(`
 		UPDATE Payments 
 		SET IsPaid = 1, PaidDate = GETDATE()
@@ -287,7 +266,6 @@ func ProcessPayment(paymentID int, userID int) error {
 	return nil
 }
 
-// getOrderByColumnForOwnerPayment maps frontend sort column names to actual SQL column/expression for Owner view
 func getOrderByColumnForOwnerPayment(sortColumn string) string {
 	columnMap := map[string]string{
 		"StadiumName": "s.Name",
@@ -303,12 +281,11 @@ func getOrderByColumnForOwnerPayment(sortColumn string) string {
 	if mapped, ok := columnMap[sortColumn]; ok {
 		return mapped
 	}
-	return "aa.Date" // default
+	return "aa.Date" 
 }
 
-// GetOwnerPaymentsPaginated retrieves paginated payments for an owner
 func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.PaginatedOwnerPayments, error) {
-	// Validate and set sort column (whitelist to prevent SQL injection)
+	
 	sortColumn := params.SortColumn
 	if sortColumn == "" {
 		sortColumn = "Date"
@@ -322,13 +299,11 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		sortColumn = "Date"
 	}
 
-	// Validate sort direction
 	sortDirection := params.SortDirection
 	if sortDirection != "ASC" && sortDirection != "DESC" {
 		sortDirection = "DESC"
 	}
 
-	// Validate pagination parameters
 	if params.PageNumber < 1 {
 		params.PageNumber = 1
 	}
@@ -339,23 +314,19 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		params.PageSize = 100
 	}
 
-	// Calculate pagination
 	offset := (params.PageNumber - 1) * params.PageSize
 
-	// Build WHERE conditions and arguments
 	var whereConditions []string
 	var countArgs []interface{}
 	var queryArgs []interface{}
 	paramIndex := 1
 
-	// Base conditions (always present)
 	whereConditions = append(whereConditions, "p.IsDeleted = 0")
 	whereConditions = append(whereConditions, fmt.Sprintf("s.OwnerId = @p%d", paramIndex))
 	countArgs = append(countArgs, params.OwnerID)
 	queryArgs = append(queryArgs, params.OwnerID)
 	paramIndex++
 
-	// IsPaid filter
 	if params.IsPaid != nil {
 		isPaidValue := 0
 		if *params.IsPaid {
@@ -367,7 +338,6 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		paramIndex++
 	}
 
-	// Date range filters (use PaidDate for received, Date for pending, or Date for both)
 	if params.StartDate != "" {
 		whereConditions = append(whereConditions, fmt.Sprintf("aa.Date >= @p%d", paramIndex))
 		countArgs = append(countArgs, params.StartDate)
@@ -381,7 +351,6 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		paramIndex++
 	}
 
-	// Search text filter (includes BookerName and BookerEmail)
 	if params.SearchText != "" {
 		searchPattern := "%" + params.SearchText + "%"
 		searchParamIndex := paramIndex
@@ -400,13 +369,11 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		paramIndex++
 	}
 
-	// Build WHERE clause
 	whereClause := "WHERE " + whereConditions[0]
 	for i := 1; i < len(whereConditions); i++ {
 		whereClause += " AND " + whereConditions[i]
 	}
 
-	// Build count query
 	countQuery := `
 		SELECT COUNT(*) 
 		FROM Payments p
@@ -417,10 +384,8 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		INNER JOIN Users u ON br.CreatedBy = u.UserId
 		` + whereClause
 
-	// Map sort column to actual SQL column/expression
 	orderByColumn := getOrderByColumnForOwnerPayment(sortColumn)
 
-	// Build main query with pagination
 	query := fmt.Sprintf(`
 		SELECT 
 			p.PaymentID,
@@ -447,23 +412,20 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 
 	queryArgs = append(queryArgs, offset, params.PageSize)
 
-	// Get total count
 	var totalCount int
 	err := config.DB.QueryRow(countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if params.PageNumber > totalPages && totalPages > 0 {
 		params.PageNumber = totalPages
-		// Recalculate offset
+		
 		offset = (params.PageNumber - 1) * params.PageSize
 		queryArgs[len(queryArgs)-2] = offset
 	}
 
-	// Execute main query
 	rows, err := config.DB.Query(query, queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query payments: %w", err)
@@ -511,7 +473,6 @@ func GetOwnerPaymentsPaginated(params models.OwnerPaymentSearchParams) (*models.
 		PageSize:   params.PageSize,
 	}
 
-	// Add total based on IsPaid filter
 	if params.IsPaid != nil {
 		if *params.IsPaid {
 			result.TotalReceived = totalPrice

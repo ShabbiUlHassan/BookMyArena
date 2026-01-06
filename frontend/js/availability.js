@@ -1,23 +1,20 @@
-// Availability table functionality
 
-// State for pagination, search, and sorting
+
 let availabilityState = {
     pageNumber: 1,
     pageSize: 10,
     searchText: '',
     sortColumn: 'CreatedDate',
     sortDirection: 'DESC',
-    reservationFilter: null // true for Reserved, false for Free, null for all
+    reservationFilter: null 
 };
 
-let allAvailabilities = []; // Store all fetched availabilities for client-side filtering
+let allAvailabilities = []; 
 
-// Debounced search timeout
 let availabilitySearchTimeout = null;
 
-// Load availability table on page load
 document.addEventListener('DOMContentLoaded', async () => {
-    // Set up confirmation button handler
+    
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', executeDeleteAvailability);
@@ -35,10 +32,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Initialize filter button styles
     updateFilterButtonStyles(null);
-    
-    // Load initial data
+
     await loadAvailabilityTable();
 });
 
@@ -54,8 +49,7 @@ async function loadAvailabilityTable(pageNumber = availabilityState.pageNumber, 
     tableContainer.innerHTML = '<p>Loading availability...</p>';
 
     try {
-        // Fetch all data for client-side filtering by reservation status
-        // Using a large page size to get all records, then filter client-side
+
         const result = await API.getOwnerAvailabilities({
             searchText,
             sortColumn,
@@ -66,30 +60,25 @@ async function loadAvailabilityTable(pageNumber = availabilityState.pageNumber, 
 
         console.log('Loaded availabilities:', result);
 
-        // Store all availabilities
         allAvailabilities = result.availabilities || [];
 
-        // Apply reservation filter if set
         let filteredAvailabilities = allAvailabilities;
         if (reservationFilter !== null) {
             filteredAvailabilities = allAvailabilities.filter(av => (av.reserved || false) === reservationFilter);
         }
 
-        // Apply pagination to filtered results
         const startIndex = (pageNumber - 1) * pageSize;
         const endIndex = startIndex + pageSize;
         const paginatedAvailabilities = filteredAvailabilities.slice(startIndex, endIndex);
         const totalCount = filteredAvailabilities.length;
         const totalPages = Math.ceil(totalCount / pageSize);
 
-        // Create result object with filtered and paginated data
         const filteredResult = {
             availabilities: paginatedAvailabilities,
             totalCount: totalCount,
             totalPages: totalPages
         };
 
-        // Update state
         availabilityState = {
             pageNumber,
             pageSize,
@@ -108,20 +97,18 @@ async function loadAvailabilityTable(pageNumber = availabilityState.pageNumber, 
     }
 }
 
-// Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
 function formatTime(timeStr) {
     if (!timeStr || timeStr === 'N/A') return timeStr;
-    // Remove milliseconds/microseconds (decimal point and everything after)
+    
     return timeStr.replace(/\.\d+/g, '').trim();
 }
 
-// Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
 function formatDate(dateStr) {
     if (!dateStr || dateStr === 'N/A') return dateStr;
     
     try {
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr; // Invalid date
+        if (isNaN(date.getTime())) return dateStr; 
         
         const day = date.getDate();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -130,7 +117,7 @@ function formatDate(dateStr) {
         
         return `${day}-${month}-${year}`;
     } catch (error) {
-        return dateStr; // Return original if parsing fails
+        return dateStr; 
     }
 }
 
@@ -149,7 +136,6 @@ function displayAvailabilityTable(result) {
     const sortColumn = availabilityState.sortColumn || 'CreatedDate';
     const sortDirection = availabilityState.sortDirection || 'DESC';
 
-    // Generate sort icon
     const getSortIcon = (col) => {
         if (col !== sortColumn) {
             return '<i class="bi bi-arrow-up sort-icon" style="opacity: 0.5;"></i><i class="bi bi-arrow-down sort-icon" style="opacity: 0.5;"></i>';
@@ -159,7 +145,6 @@ function displayAvailabilityTable(result) {
             : '<i class="bi bi-arrow-down sort-icon" style="opacity: 1;"></i>';
     };
 
-    // Generate sort handler
     const getSortHandler = (col) => {
         const newDirection = (sortColumn === col && sortDirection === 'ASC') ? 'DESC' : 'ASC';
         return `handleAvailabilitySort('${col}', '${newDirection}')`;
@@ -194,18 +179,16 @@ function displayAvailabilityTable(result) {
                     const createdDate = availability.createdDate ? new Date(availability.createdDate).toLocaleString() : 'N/A';
                     const availabilityId = availability.id || '';
                     const isReserved = availability.reserved || false;
-                    
-                    // Check if date and endTime have passed
+
                     let canDelete = false;
                     if (isReserved && date !== 'N/A' && availability.endTime) {
                         try {
-                            // Combine date and endTime to create a datetime
-                            const rawEndTime = availability.endTime.replace(/\.\d+/g, '').trim(); // Remove milliseconds
+                            
+                            const rawEndTime = availability.endTime.replace(/\.\d+/g, '').trim(); 
                             const dateTimeString = `${date} ${rawEndTime}`;
                             const availabilityEndDateTime = new Date(dateTimeString);
                             const currentDateTime = new Date();
-                            
-                            // Enable delete if current time has passed the availability end time
+
                             canDelete = currentDateTime > availabilityEndDateTime;
                         } catch (e) {
                             console.error('Error parsing date/time:', e);
@@ -247,7 +230,6 @@ function displayAvailabilityTable(result) {
     `;
     tableContainer.innerHTML = table;
 
-    // Display pagination
     if (paginationContainer && result.totalPages > 0) {
         paginationContainer.innerHTML = `
             <div class="pagination-info">
@@ -284,7 +266,7 @@ function handleAvailabilitySearchInput(event) {
         const searchInput = document.getElementById('availabilitySearch');
         const searchText = searchInput ? searchInput.value : '';
         loadAvailabilityTable(1, availabilityState.pageSize || 10, searchText, availabilityState.sortColumn || 'CreatedDate', availabilityState.sortDirection || 'DESC', availabilityState.reservationFilter);
-    }, 500); // 500ms delay
+    }, 500); 
 }
 
 function handleAvailabilitySort(sortColumn, sortDirection) {
@@ -300,24 +282,20 @@ function handleAvailabilityPageSizeChange(pageSize) {
 }
 
 function handleReservationFilter(isReserved) {
-    // Set filter (don't toggle - always set to the clicked status)
+    
     const newFilter = isReserved;
-    
-    // Update button styles and clear filter button visibility
+
     updateFilterButtonStyles(newFilter);
-    
-    // Reload with new filter
+
     loadAvailabilityTable(1, availabilityState.pageSize, availabilityState.searchText, availabilityState.sortColumn, availabilityState.sortDirection, newFilter);
 }
 
 function clearReservationFilter() {
-    // Remove filter
+    
     const newFilter = null;
-    
-    // Update button styles and clear filter button visibility
+
     updateFilterButtonStyles(newFilter);
-    
-    // Reload without filter
+
     loadAvailabilityTable(1, availabilityState.pageSize, availabilityState.searchText, availabilityState.sortColumn, availabilityState.sortDirection, newFilter);
 }
 
@@ -327,7 +305,7 @@ function updateFilterButtonStyles(reservationFilter) {
     const clearBtn = document.getElementById('clearFilterBtn');
     
     if (reservedBtn && freeBtn && clearBtn) {
-        // Always set opacity to 1 for all filter buttons
+        
         reservedBtn.style.opacity = '1';
         freeBtn.style.opacity = '1';
         
@@ -347,7 +325,7 @@ function updateFilterButtonStyles(reservationFilter) {
     }
 }
 
-let pendingDeleteAvailabilityId = null; // Store the pending availability ID to delete
+let pendingDeleteAvailabilityId = null; 
 
 function showDeleteConfirmationModal(availabilityId) {
     pendingDeleteAvailabilityId = availabilityId;
@@ -367,8 +345,7 @@ async function executeDeleteAvailability() {
     }
 
     const availabilityId = pendingDeleteAvailabilityId;
-    
-    // Close modal
+
     const modalElement = document.getElementById('confirmationModal');
     const modal = bootstrap.Modal.getInstance(modalElement);
     if (modal) {
@@ -390,7 +367,6 @@ async function deleteAvailability(availabilityId) {
     showDeleteConfirmationModal(availabilityId);
 }
 
-// Make functions globally accessible
 window.handleAvailabilitySearch = handleAvailabilitySearch;
 window.handleAvailabilitySearchInput = handleAvailabilitySearchInput;
 window.handleAvailabilitySort = handleAvailabilitySort;

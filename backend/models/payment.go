@@ -23,7 +23,6 @@ type PaymentWithDetails struct {
 	IsPaid        bool    `json:"isPaid" db:"IsPaid"`
 }
 
-// PaymentWithOwnerDetails includes booker information for Owner view
 type PaymentWithOwnerDetails struct {
 	PaymentID     int     `json:"paymentId" db:"PaymentID"`
 	StadiumName   string  `json:"stadiumName" db:"StadiumName"`

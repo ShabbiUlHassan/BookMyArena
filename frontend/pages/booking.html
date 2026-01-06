@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookings - BookMyArena</title>
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/png" href="../images/logo.png">
-    <!-- Bootstrap CSS -->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <!-- Navbar -->
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="dashboard.html">
@@ -28,12 +28,11 @@
     </nav>
 
     <div class="dashboard-layout">
-        <!-- Sidebar Container - populated by navigation.js -->
+        
         <div id="sidebar-container"></div>
 
-        <!-- Main Content -->
         <main class="dashboard-content">
-                <!-- Owner Bookings Section -->
+                
                 <div id="ownerBookingSection" style="display: none;">
                     <section class="section">
                         <h2>All Bookings</h2>
@@ -42,13 +41,11 @@
                     </section>
                 </div>
 
-                <!-- User Booking Requests Section -->
                 <div id="userBookingSection" style="display: none;">
                     <section class="section">
                         <h2>My Booking Requests</h2>
                         <p>View and manage your booking requests.</p>
-                        
-                        <!-- Search Section -->
+
                         <div class="card mb-3">
                             <div class="card-body">
                                 <div class="row g-3 align-items-end">
@@ -83,35 +80,32 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Table Container -->
+
                         <div id="bookingRequestTable" class="table-container"></div>
-                        
-                        <!-- Pagination Footer -->
+
                         <div id="bookingRequestPagination" class="arena-table-footer"></div>
                     </section>
                 </div>
         </main>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/navigation.js"></script>
     <script src="../js/alertModal.js"></script>
     <script>
-        // User Booking Requests State
+        
         let bookingRequestState = {
             pageNumber: 1,
             pageSize: 10,
             searchText: '',
             sortColumn: 'CreatedDate',
             sortDirection: 'DESC',
-            statusFilter: null // 'Booked' for Accept, 'Declined' for Decline, 'Pending' for Pending, null for all
+            statusFilter: null 
         };
         let bookingRequestSearchTimeout = null;
-        let allBookingRequests = []; // Store all fetched requests for client-side filtering
+        let allBookingRequests = []; 
 
         async function loadBookingRequests(pageNumber = bookingRequestState.pageNumber, pageSize = bookingRequestState.pageSize, searchText = bookingRequestState.searchText, sortColumn = bookingRequestState.sortColumn, sortDirection = bookingRequestState.sortDirection, statusFilter = bookingRequestState.statusFilter) {
             const tableContainer = document.getElementById('bookingRequestTable');
@@ -122,35 +116,30 @@
             tableContainer.innerHTML = '<p>Loading booking requests...</p>';
 
             try {
-                // Fetch all data for client-side filtering by status
-                // Using a large page size to get all records, then filter client-side
+
                 const result = await API.getUserBookingRequests({
                     searchText,
                     sortColumn,
                     sortDirection,
                     pageNumber: 1,
-                    pageSize: 1000 // Get all records for filtering
+                    pageSize: 1000 
                 });
 
                 console.log('Loaded booking requests:', result);
 
-                // Store all requests
                 allBookingRequests = result.bookingRequests || [];
 
-                // Apply status filter if set
                 let filteredRequests = allBookingRequests;
                 if (statusFilter) {
                     filteredRequests = allBookingRequests.filter(br => (br.status || 'N/A') === statusFilter);
                 }
 
-                // Apply pagination to filtered results
                 const startIndex = (pageNumber - 1) * pageSize;
                 const endIndex = startIndex + pageSize;
                 const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
                 const totalCount = filteredRequests.length;
                 const totalPages = Math.ceil(totalCount / pageSize);
 
-                // Create result object with filtered and paginated data
                 const filteredResult = {
                     bookingRequests: paginatedRequests,
                     totalCount: totalCount,
@@ -177,20 +166,18 @@
             }
         }
 
-        // Format time string to remove milliseconds/microseconds (15:32:00.0000000 -> 15:32:00)
         function formatTime(timeStr) {
             if (!timeStr || timeStr === 'N/A') return timeStr;
-            // Remove milliseconds/microseconds (decimal point and everything after)
+            
             return timeStr.replace(/\.\d+/g, '').trim();
         }
 
-        // Format date string to day/Mon/YYYY format (e.g., 12/Jan/2026)
         function formatDate(dateStr) {
             if (!dateStr || dateStr === 'N/A') return dateStr;
             
             try {
                 const date = new Date(dateStr);
-                if (isNaN(date.getTime())) return dateStr; // Invalid date
+                if (isNaN(date.getTime())) return dateStr; 
                 
                 const day = date.getDate();
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -199,24 +186,21 @@
                 
                 return `${day}-${month}-${year}`;
             } catch (error) {
-                return dateStr; // Return original if parsing fails
+                return dateStr; 
             }
         }
 
-        // Parse date and time to create a Date object for comparison
         function parseBookingRequestDateTime(dateStr, timeStr) {
             if (!dateStr || !timeStr || dateStr === 'N/A' || timeStr === 'N/A') {
                 return null;
             }
             
             try {
-                // Remove milliseconds from time if present
+                
                 const cleanTime = timeStr.replace(/\.\d+/g, '').trim();
-                
-                // Date format from SQL Server CONVERT(VARCHAR, Date, 120) is YYYY-MM-DD
+
                 const cleanDate = dateStr.trim();
-                
-                // Parse date components
+
                 const dateParts = cleanDate.split('-');
                 if (dateParts.length !== 3) {
                     console.warn('Invalid date format:', cleanDate);
@@ -224,10 +208,9 @@
                 }
                 
                 const year = parseInt(dateParts[0], 10);
-                const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+                const month = parseInt(dateParts[1], 10) - 1; 
                 const day = parseInt(dateParts[2], 10);
-                
-                // Parse time components
+
                 const timeParts = cleanTime.split(':');
                 if (timeParts.length < 2) {
                     console.warn('Invalid time format:', cleanTime);
@@ -237,8 +220,7 @@
                 const hours = parseInt(timeParts[0], 10);
                 const minutes = parseInt(timeParts[1], 10);
                 const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
-                
-                // Create date object using local time
+
                 const dateTime = new Date(year, month, day, hours, minutes, seconds);
                 
                 if (isNaN(dateTime.getTime())) {
@@ -310,14 +292,13 @@
                             const status = br.status || 'N/A';
                             const bookingRequestId = br.bookingRequestId || 0;
                             const isPending = status === 'Pending';
-                            
-                            // Check if booking end time has passed (only enable delete if end time has passed)
+
                             let canDelete = false;
                             if (!isPending && originalDate !== 'N/A' && originalEndTime !== 'N/A') {
                                 const bookingEndDateTime = parseBookingRequestDateTime(originalDate, originalEndTime);
                                 if (bookingEndDateTime) {
                                     const currentDateTime = new Date();
-                                    // Enable delete only if booking end time has passed
+                                    
                                     canDelete = bookingEndDateTime < currentDateTime;
                                 }
                             }
@@ -356,7 +337,6 @@
             `;
             tableContainer.innerHTML = table;
 
-            // Display pagination
             if (paginationContainer && result.totalPages > 0) {
                 paginationContainer.innerHTML = `
                     <div class="pagination-info">
@@ -419,24 +399,20 @@
         }
 
         function handleBookingStatusFilter(status) {
-            // Set filter (don't toggle - always set to the clicked status)
+            
             const newFilter = status;
-            
-            // Update button styles and clear filter button visibility
+
             updateBookingFilterButtonStyles(newFilter);
-            
-            // Reload with new filter
+
             loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, newFilter);
         }
 
         function clearBookingStatusFilter() {
-            // Remove filter
+            
             const newFilter = null;
-            
-            // Update button styles and clear filter button visibility
+
             updateBookingFilterButtonStyles(newFilter);
-            
-            // Reload without filter
+
             loadBookingRequests(1, bookingRequestState.pageSize, bookingRequestState.searchText, bookingRequestState.sortColumn, bookingRequestState.sortDirection, newFilter);
         }
 
@@ -447,7 +423,7 @@
             const clearBtn = document.getElementById('clearFilterBtn');
             
             if (acceptBtn && declineBtn && pendingBtn && clearBtn) {
-                // Always set opacity to 1 for all filter buttons
+                
                 acceptBtn.style.opacity = '1';
                 declineBtn.style.opacity = '1';
                 pendingBtn.style.opacity = '1';
@@ -490,7 +466,6 @@
             }
         }
 
-        // Make functions globally accessible
         window.handleBookingRequestSearch = handleBookingRequestSearch;
         window.handleBookingRequestSearchInput = handleBookingRequestSearchInput;
         window.handleBookingRequestSort = handleBookingRequestSort;
@@ -500,24 +475,22 @@
         window.clearBookingStatusFilter = clearBookingStatusFilter;
         window.deleteBookingRequest = deleteBookingRequest;
 
-        // Load data on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication
+            
             const user = await API.getCurrentUser();
             if (!user) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            // Show/hide sections based on user role
             if (user.role === 'Owner') {
                 document.getElementById('ownerBookingSection').style.display = 'block';
                 document.getElementById('userBookingSection').style.display = 'none';
-                // Load owner bookings if needed
+                
             } else {
                 document.getElementById('ownerBookingSection').style.display = 'none';
                 document.getElementById('userBookingSection').style.display = 'block';
-                // Initialize filter button styles
+                
                 updateBookingFilterButtonStyles(null);
                 await loadBookingRequests();
             }

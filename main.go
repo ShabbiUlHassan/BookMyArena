@@ -10,11 +10,10 @@ import (
 )
 
 func main() {
-	// Initialize database
+	
 	config.InitDB()
 	defer config.CloseDB()
 
-	// Clean expired sessions periodically
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
@@ -23,10 +22,8 @@ func main() {
 		}
 	}()
 
-	// Setup routes
 	router := routes.SetupRoutes()
 
-	// Start server
 	port := ":8080"
 	log.Printf("Server starting on port %s\n", port)
 	log.Println("BookMyArena API is ready!")
