@@ -795,39 +795,63 @@ async function loadUserAvailabilityTable(pageNumber = userAvailabilityState.page
 
         // Filter out past records (date and endTime must be greater than current date and time)
         const currentDateTime = new Date();
-        const futureAvailabilities = (result.availabilities || []).filter(av => {
+        const allAvailabilities = result.availabilities || [];
+        console.log('Total availabilities from API:', allAvailabilities.length);
+        
+        const futureAvailabilities = allAvailabilities.filter(av => {
             // Parse the availability end date/time
             const availabilityEndDateTime = parseAvailabilityDateTime(av.date, av.endTime);
             
             if (!availabilityEndDateTime) {
                 // Exclude records with invalid or missing date/time
+                console.log('Excluding record with invalid date/time:', av);
                 return false;
             }
             
             // Only include if availability end time is in the future
-            return availabilityEndDateTime > currentDateTime;
+            const isFuture = availabilityEndDateTime > currentDateTime;
+            if (!isFuture) {
+                console.log('Excluding past record:', av.date, av.endTime);
+            }
+            return isFuture;
         });
+        
+        console.log('Future availabilities after filtering:', futureAvailabilities.length);
 
         // Apply pagination to filtered results
-        const startIndex = (pageNumber - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
+        // Ensure pageSize is a valid number
+        const validPageSize = parseInt(pageSize, 10) || 10;
+        const validPageNumber = parseInt(pageNumber, 10) || 1;
+        
+        const startIndex = (validPageNumber - 1) * validPageSize;
+        const endIndex = startIndex + validPageSize;
         const paginatedAvailabilities = futureAvailabilities.slice(startIndex, endIndex);
         const totalCount = futureAvailabilities.length;
-        const totalPages = Math.ceil(totalCount / pageSize);
+        const totalPages = Math.ceil(totalCount / validPageSize) || 1;
+        
+        console.log('Pagination:', {
+            validPageSize,
+            validPageNumber,
+            startIndex,
+            endIndex,
+            totalCount,
+            totalPages,
+            paginatedCount: paginatedAvailabilities.length
+        });
 
         // Create filtered result object
         const filteredResult = {
             availabilities: paginatedAvailabilities,
             totalCount: totalCount,
             totalPages: totalPages,
-            pageNumber: pageNumber,
-            pageSize: pageSize
+            pageNumber: validPageNumber,
+            pageSize: validPageSize
         };
 
         // Update state
         userAvailabilityState = {
-            pageNumber: pageNumber,
-            pageSize: pageSize,
+            pageNumber: validPageNumber,
+            pageSize: validPageSize,
             searchText,
             sortColumn,
             sortDirection,
@@ -924,6 +948,13 @@ function displayUserAvailabilityTable(result) {
     
     if (!tableContainer) return;
 
+    console.log('Displaying user availability table:', {
+        resultCount: result?.availabilities?.length || 0,
+        totalCount: result?.totalCount || 0,
+        pageNumber: result?.pageNumber || 0,
+        pageSize: result?.pageSize || 0
+    });
+
     if (!result || !result.availabilities || result.availabilities.length === 0) {
         tableContainer.innerHTML = '<p>No available slots found at the moment. Please check back later.</p>';
         if (paginationContainer) paginationContainer.innerHTML = '';
@@ -1009,28 +1040,31 @@ function displayUserAvailabilityTable(result) {
 
     // Display pagination
     if (paginationContainer && result.totalPages > 0) {
+        const startRecord = result.totalCount > 0 ? ((result.pageNumber - 1) * result.pageSize) + 1 : 0;
+        const endRecord = Math.min(result.pageNumber * result.pageSize, result.totalCount);
+        
         paginationContainer.innerHTML = `
             <div class="pagination-info">
-                Showing ${((userAvailabilityState.pageNumber - 1) * userAvailabilityState.pageSize) + 1} to ${Math.min(userAvailabilityState.pageNumber * userAvailabilityState.pageSize, userAvailabilityState.totalCount)} of ${userAvailabilityState.totalCount} records
+                Showing ${startRecord} to ${endRecord} of ${result.totalCount} records
                 <select class="page-size-select" onchange="handleUserAvailabilityPageSizeChange(this.value)">
-                    <option value="10" ${userAvailabilityState.pageSize === 10 ? 'selected' : ''}>10 per page</option>
-                    <option value="25" ${userAvailabilityState.pageSize === 25 ? 'selected' : ''}>25 per page</option>
-                    <option value="50" ${userAvailabilityState.pageSize === 50 ? 'selected' : ''}>50 per page</option>
-                    <option value="100" ${userAvailabilityState.pageSize === 100 ? 'selected' : ''}>100 per page</option>
+                    <option value="10" ${result.pageSize === 10 ? 'selected' : ''}>10 per page</option>
+                    <option value="25" ${result.pageSize === 25 ? 'selected' : ''}>25 per page</option>
+                    <option value="50" ${result.pageSize === 50 ? 'selected' : ''}>50 per page</option>
+                    <option value="100" ${result.pageSize === 100 ? 'selected' : ''}>100 per page</option>
                 </select>
             </div>
             <nav>
                 <ul class="pagination">
-                    <li class="page-item ${userAvailabilityState.pageNumber === 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${userAvailabilityState.pageNumber - 1}); return false;">Previous</a>
+                    <li class="page-item ${result.pageNumber === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${result.pageNumber - 1}); return false;">Previous</a>
                     </li>
                     ${Array.from({ length: result.totalPages }, (_, i) => i + 1).map(page => `
-                        <li class="page-item ${page === userAvailabilityState.pageNumber ? 'active' : ''}">
+                        <li class="page-item ${page === result.pageNumber ? 'active' : ''}">
                             <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${page}); return false;">${page}</a>
                         </li>
                     `).join('')}
-                    <li class="page-item ${userAvailabilityState.pageNumber === userAvailabilityState.totalPages ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${userAvailabilityState.pageNumber + 1}); return false;">Next</a>
+                    <li class="page-item ${result.pageNumber >= result.totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="handleUserAvailabilityPageChange(${result.pageNumber + 1}); return false;">Next</a>
                     </li>
                 </ul>
             </nav>
@@ -1066,7 +1100,13 @@ function handleUserAvailabilityPageChange(pageNumber) {
 }
 
 function handleUserAvailabilityPageSizeChange(pageSize) {
-    loadUserAvailabilityTable(1, parseInt(pageSize), userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
+    const newPageSize = parseInt(pageSize, 10);
+    if (isNaN(newPageSize) || newPageSize < 1) {
+        console.error('Invalid page size:', pageSize);
+        return;
+    }
+    // Reset to page 1 when changing page size
+    loadUserAvailabilityTable(1, newPageSize, userAvailabilityState.searchText || '', userAvailabilityState.sortColumn || 'CreatedDate', userAvailabilityState.sortDirection || 'DESC');
 }
 
 // Format time string to remove milliseconds/microseconds (01:45:00.0000000000000 -> 01:45:00)

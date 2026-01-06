@@ -264,7 +264,7 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
 			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
-				AND br.BookieID = @p1 AND br.IsDeleted = 0
+				AND br.BookieID = @p1 AND br.IsDeleted = 0 AND (br.IsDeletedUser = 0 OR br.IsDeletedUser IS NULL)
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
 			AND br.BookingRequestId IS NULL
@@ -303,7 +303,7 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
 			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
-				AND br.BookieID = @p1 AND br.IsDeleted = 0
+				AND br.BookieID = @p1 AND br.IsDeleted = 0 AND (br.IsDeletedUser = 0 OR br.IsDeletedUser IS NULL)
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
 			AND br.BookingRequestId IS NULL
@@ -328,7 +328,7 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			SELECT COUNT(*) 
 			FROM ArenaAvailability aa
 			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
-				AND br.BookieID = @p1 AND br.IsDeleted = 0
+				AND br.BookieID = @p1 AND br.IsDeleted = 0 AND (br.IsDeletedUser = 0 OR br.IsDeletedUser IS NULL)
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
 			AND br.BookingRequestId IS NULL
@@ -356,7 +356,7 @@ func GetUserAvailabilitiesPaginated(params models.UserAvailabilitySearchParams) 
 			INNER JOIN Stadiums s ON aa.StadiumId = s.StadiumId
 			INNER JOIN Arenas a ON aa.ArenaId = a.ArenaId
 			LEFT JOIN BookingRequest br ON CAST(aa.Id AS VARCHAR(36)) = CAST(br.AvailabilityId AS VARCHAR(36)) 
-				AND br.BookieID = @p1 AND br.IsDeleted = 0
+				AND br.BookieID = @p1 AND br.IsDeleted = 0 AND (br.IsDeletedUser = 0 OR br.IsDeletedUser IS NULL)
 			WHERE aa.IsDeleted = 0 
 			AND aa.AvailabilityDone = 0
 			AND br.BookingRequestId IS NULL
